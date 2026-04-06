@@ -26,7 +26,7 @@ export const mockGrants: Grant[] = [
       requirements: ["사업자등록 전 예비창업자", "혁신 기술 아이디어 보유"],
     },
     tags: ["예비창업", "사업화자금", "멘토링", "창업교육"],
-    url: "https://www.k-startup.go.kr/common/announcement/announcementList.do",
+    url: "https://www.k-startup.go.kr/",
   },
   {
     id: "g002",
@@ -52,7 +52,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["TIPS", "기술창업", "VC투자", "R&D"],
-    url: "https://www.k-startup.go.kr/common/announcement/announcementList.do",
+    url: "https://www.k-startup.go.kr/",
   },
   {
     id: "g003",
@@ -74,7 +74,7 @@ export const mockGrants: Grant[] = [
       requirements: ["창업 3년 이내", "기술 기반 사업 아이템 보유"],
     },
     tags: ["초기창업", "사업화", "소셜벤처"],
-    url: "https://www.k-startup.go.kr/common/announcement/announcementList.do",
+    url: "https://www.k-startup.go.kr/",
   },
   {
     id: "g004",
@@ -96,7 +96,7 @@ export const mockGrants: Grant[] = [
       requirements: ["창업 3~7년차", "매출 발생 기업 우대"],
     },
     tags: ["도약기", "성장지원", "스케일업"],
-    url: "https://www.k-startup.go.kr/common/announcement/announcementList.do",
+    url: "https://www.k-startup.go.kr/",
   },
 
   // ===== R&D =====
@@ -123,7 +123,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["기술혁신", "R&D", "중소기업", "기술개발"],
-    url: "https://smtech.go.kr/front/ifp/no/notice02_list.do",
+    url: "https://www.smtech.go.kr/",
   },
   {
     id: "g006",
@@ -219,7 +219,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["에너지", "신재생", "수소", "KETEP"],
-    url: "https://www.ketep.re.kr/business/announce/list.do",
+    url: "https://www.ketep.re.kr/",
   },
 
   // ===== 정책자금 =====
@@ -271,7 +271,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["소상공인", "정책자금", "운전자금", "소상공인24"],
-    url: "https://www.sg24.go.kr/sp/info/policyFund.do",
+    url: "https://www.sbiz24.kr/",
   },
   {
     id: "g012",
@@ -318,7 +318,7 @@ export const mockGrants: Grant[] = [
       requirements: ["미취업 청년", "기준중위소득 150% 이하 우선"],
     },
     tags: ["청년", "취업", "직업훈련", "구직"],
-    url: "https://www.work.go.kr/pkg/succ/succPkgIntro.do",
+    url: "https://www.work.go.kr/",
   },
   {
     id: "g014",
@@ -372,7 +372,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["청년", "내일채움", "자산형성", "중소기업"],
-    url: "https://www.work.go.kr/youngtomorrow/about/intro.do",
+    url: "https://www.work.go.kr/",
   },
 
   // ===== 복지 =====
@@ -570,7 +570,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["연구인력", "석박사", "중소기업", "인건비"],
-    url: "https://smtech.go.kr/front/ifp/no/notice02_list.do",
+    url: "https://www.smtech.go.kr/",
   },
 
   // ===== 수출지원 =====
@@ -644,7 +644,7 @@ export const mockGrants: Grant[] = [
       requirements: ["소상공인 확인서 보유", "사업자등록증 보유"],
     },
     tags: ["소상공인", "컨설팅", "경영", "무료"],
-    url: "https://www.sg24.go.kr/sp/info/consulting.do",
+    url: "https://www.sbiz24.kr/",
   },
   {
     id: "g027",
@@ -794,7 +794,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["스마트공장", "제조", "디지털전환", "자동화"],
-    url: "https://www.smart-factory.kr/usr/main/main.do",
+    url: "https://www.smart-factory.kr/",
   },
   {
     id: "g033",
@@ -895,7 +895,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["소상공인", "온라인", "판로", "쇼핑몰", "소상공인24"],
-    url: "https://www.sg24.go.kr/sp/info/onlineSales.do",
+    url: "https://www.sbiz24.kr/",
   },
   {
     id: "g037",
@@ -994,7 +994,7 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["소상공인", "폐업", "재기", "재창업", "소상공인24"],
-    url: "https://www.sg24.go.kr/sp/info/restart.do",
+    url: "https://www.sbiz24.kr/",
   },
   {
     id: "g041",
@@ -1121,6 +1121,6 @@ export const mockGrants: Grant[] = [
       ],
     },
     tags: ["강원", "청년", "귀농", "농업"],
-    url: "https://www.provin.gangwon.kr",
+    url: "https://www.gwd.go.kr/",
   },
 ];
