@@ -41,6 +41,9 @@ export interface Organization {
 }
 
 export interface PersonalProfile {
+  /** ISO date string YYYY-MM-DD */
+  birthDate?: string;
+  /** @deprecated v2 잔존 필드. 새 코드는 birthDate 사용. 마이그레이션에서 birthDate가 없을 때 fallback. */
   age?: number;
   region?: string;
   incomeLevel?: "저소득" | "중위소득" | "일반";

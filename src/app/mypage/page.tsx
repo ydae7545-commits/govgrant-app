@@ -21,6 +21,7 @@ import { OrgList } from "@/components/profile/org-list";
 import { SignInBanner } from "@/components/profile/sign-in-banner";
 import { useUserStore } from "@/store/user-store";
 import { mockGrants } from "@/data/mock-grants";
+import { calculateAge, formatBirthDate } from "@/lib/format";
 import type { Grant } from "@/types/grant";
 
 export default function MyPage() {
@@ -140,8 +141,15 @@ export default function MyPage() {
               <Separator className="mb-4" />
               <div className="space-y-3">
                 <InfoRow label="이름" value={account.displayName} />
-                {account.personal.age != null && (
-                  <InfoRow label="나이" value={`${account.personal.age}세`} />
+                {(account.personal.birthDate || account.personal.age != null) && (
+                  <InfoRow
+                    label="생년월일"
+                    value={
+                      account.personal.birthDate
+                        ? `${formatBirthDate(account.personal.birthDate)} (만 ${calculateAge(account.personal.birthDate, account.personal.age)}세)`
+                        : `만 ${account.personal.age}세`
+                    }
+                  />
                 )}
                 {account.personal.region && (
                   <InfoRow label="거주 지역" value={account.personal.region} />

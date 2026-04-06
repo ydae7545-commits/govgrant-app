@@ -62,7 +62,7 @@ export default function OnboardingPage() {
   const [displayName, setDisplayName] = useState("");
 
   // Step 2
-  const [age, setAge] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [region, setRegion] = useState("");
   const [incomeLevel, setIncomeLevel] = useState<
     "저소득" | "중위소득" | "일반" | ""
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (!mounted || !account) return;
     setDisplayName(account.displayName || "");
-    setAge(account.personal.age?.toString() ?? "");
+    setBirthDate(account.personal.birthDate ?? "");
     setRegion(account.personal.region ?? "");
     setIncomeLevel(account.personal.incomeLevel ?? "");
     setEmploymentStatus(account.personal.employmentStatus ?? "");
@@ -121,7 +121,8 @@ export default function OnboardingPage() {
     }
     if (step === 2) {
       updatePersonal({
-        age: age ? Number(age) : undefined,
+        birthDate: birthDate || undefined,
+        age: undefined, // 새 필드(birthDate)로 대체. 잔존 v2 데이터 정리.
         region: region || undefined,
         incomeLevel: incomeLevel || undefined,
         employmentStatus: employmentStatus || undefined,
@@ -228,13 +229,16 @@ export default function OnboardingPage() {
             </p>
             <div className="space-y-4">
               <div>
-                <Label>나이</Label>
+                <Label>생년월일</Label>
                 <Input
-                  type="number"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  placeholder="예: 29"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                  복지 정책의 연령 요건과 정확하게 매칭하기 위해 사용됩니다.
+                </p>
               </div>
               <div>
                 <Label>거주 지역</Label>

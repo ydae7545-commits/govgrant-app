@@ -5,7 +5,7 @@ import type {
   PersonalProfile,
   Organization,
 } from "@/types/user";
-import { daysUntil } from "./format";
+import { daysUntil, calculateAge } from "./format";
 
 /**
  * OrgKind → grant.targetTypes 매핑.
@@ -57,14 +57,15 @@ function scorePersonal(
   // +10 태그 겹침
   if (tagOverlap(grant.tags, interests)) score += 10;
 
-  // +10 나이 범위 일치
-  if (personal.age != null) {
+  // +10 나이 범위 일치 (생년월일에서 만 나이 계산, 없으면 v2 fallback age 사용)
+  const userAge = calculateAge(personal.birthDate, personal.age);
+  if (userAge != null) {
     const { ageMin, ageMax } = grant.eligibility;
     if (ageMin != null && ageMax != null) {
-      if (personal.age >= ageMin && personal.age <= ageMax) score += 10;
-    } else if (ageMin != null && personal.age >= ageMin) {
+      if (userAge >= ageMin && userAge <= ageMax) score += 10;
+    } else if (ageMin != null && userAge >= ageMin) {
       score += 6;
-    } else if (ageMax != null && personal.age <= ageMax) {
+    } else if (ageMax != null && userAge <= ageMax) {
       score += 6;
     }
   }

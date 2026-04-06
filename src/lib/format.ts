@@ -29,6 +29,35 @@ export function formatAmountRange(min: number, max: number): string {
   return `${formatAmount(min)} ~ ${formatAmount(max)}`;
 }
 
+/**
+ * 만 나이 계산. 생년월일이 있으면 만 나이를, 없으면 fallbackAge(구 v2 데이터)를 반환.
+ * 둘 다 없으면 undefined.
+ */
+export function calculateAge(
+  birthDate: string | undefined,
+  fallbackAge: number | undefined = undefined
+): number | undefined {
+  if (birthDate) {
+    const birth = parseISO(birthDate);
+    if (isNaN(birth.getTime())) return fallbackAge;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  }
+  return fallbackAge;
+}
+
+export function formatBirthDate(birthDate: string | undefined): string {
+  if (!birthDate) return "-";
+  try {
+    return format(parseISO(birthDate), "yyyy.MM.dd", { locale: ko });
+  } catch {
+    return birthDate;
+  }
+}
+
 export function getDeadlineLabel(dateStr: string): {
   text: string;
   urgent: boolean;
