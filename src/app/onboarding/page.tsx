@@ -26,6 +26,7 @@ import {
 import { OrgFormDialog } from "@/components/profile/org-form";
 import { useUserStore } from "@/store/user-store";
 import { REGIONS } from "@/data/mock-regions";
+import { SUB_REGIONS } from "@/data/mock-sub-regions";
 import type { GrantCategory } from "@/types/grant";
 import type { Organization } from "@/types/user";
 import { ORG_KIND_LABELS } from "@/types/user";
@@ -64,6 +65,7 @@ export default function OnboardingPage() {
   // Step 2
   const [birthDate, setBirthDate] = useState("");
   const [region, setRegion] = useState("");
+  const [subRegion, setSubRegion] = useState("");
   const [incomeLevel, setIncomeLevel] = useState<
     "저소득" | "중위소득" | "일반" | ""
   >("");
@@ -73,6 +75,9 @@ export default function OnboardingPage() {
   const [householdType, setHouseholdType] = useState<
     "1인" | "신혼" | "다자녀" | "일반" | ""
   >("");
+  const [hasChildren, setHasChildren] = useState(false);
+  const [isDisabled, setIsDisabled] = useState(false);
+  const [isVeteran, setIsVeteran] = useState(false);
 
   // Step 3
   const [orgDialogOpen, setOrgDialogOpen] = useState(false);
@@ -97,9 +102,13 @@ export default function OnboardingPage() {
     setDisplayName(account.displayName || "");
     setBirthDate(account.personal.birthDate ?? "");
     setRegion(account.personal.region ?? "");
+    setSubRegion(account.personal.subRegion ?? "");
     setIncomeLevel(account.personal.incomeLevel ?? "");
     setEmploymentStatus(account.personal.employmentStatus ?? "");
     setHouseholdType(account.personal.householdType ?? "");
+    setHasChildren(account.personal.hasChildren ?? false);
+    setIsDisabled(account.personal.isDisabled ?? false);
+    setIsVeteran(account.personal.isVeteran ?? false);
     setInterestsLocal(account.interests);
   }, [mounted, account]);
 
@@ -124,9 +133,13 @@ export default function OnboardingPage() {
         birthDate: birthDate || undefined,
         age: undefined, // 새 필드(birthDate)로 대체. 잔존 v2 데이터 정리.
         region: region || undefined,
+        subRegion: subRegion || undefined,
         incomeLevel: incomeLevel || undefined,
         employmentStatus: employmentStatus || undefined,
         householdType: householdType || undefined,
+        hasChildren,
+        isDisabled,
+        isVeteran,
       });
     }
     if (step === 4) {
@@ -241,13 +254,19 @@ export default function OnboardingPage() {
                 </p>
               </div>
               <div>
-                <Label>거주 지역</Label>
-                <Select value={region} onValueChange={setRegion}>
+                <Label>거주 지역 (시·도)</Label>
+                <Select
+                  value={region}
+                  onValueChange={(v) => {
+                    setRegion(v);
+                    setSubRegion("");
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="지역 선택" />
+                    <SelectValue placeholder="시·도 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    {REGIONS.map((r) => (
+                    {REGIONS.filter((r) => r !== "전국").map((r) => (
                       <SelectItem key={r} value={r}>
                         {r}
                       </SelectItem>
@@ -255,6 +274,23 @@ export default function OnboardingPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {region && SUB_REGIONS[region] && (
+                <div>
+                  <Label>세부 지역 (구·군)</Label>
+                  <Select value={subRegion} onValueChange={setSubRegion}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="구·군 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUB_REGIONS[region].map((sr) => (
+                        <SelectItem key={sr} value={sr}>
+                          {sr}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label>소득 수준</Label>
                 <Select
@@ -310,6 +346,41 @@ export default function OnboardingPage() {
                     <SelectItem value="일반">일반</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-3 rounded-lg border p-4">
+                <Label className="text-sm font-medium">
+                  추가 정보 (해당 시 체크)
+                </Label>
+                <p className="text-xs text-gray-400">
+                  특수 복지 혜택 매칭에 사용됩니다.
+                </p>
+                <label className="flex cursor-pointer items-center gap-3">
+                  <Checkbox
+                    checked={hasChildren}
+                    onCheckedChange={(v) => setHasChildren(v === true)}
+                  />
+                  <span className="text-sm text-gray-700">
+                    자녀가 있음 (출산·육아 혜택)
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3">
+                  <Checkbox
+                    checked={isDisabled}
+                    onCheckedChange={(v) => setIsDisabled(v === true)}
+                  />
+                  <span className="text-sm text-gray-700">
+                    장애인 등록 (장애인 혜택)
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3">
+                  <Checkbox
+                    checked={isVeteran}
+                    onCheckedChange={(v) => setIsVeteran(v === true)}
+                  />
+                  <span className="text-sm text-gray-700">
+                    국가유공자/보훈대상 (보훈 혜택)
+                  </span>
+                </label>
               </div>
             </div>
           </div>

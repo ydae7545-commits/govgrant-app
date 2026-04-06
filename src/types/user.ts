@@ -37,6 +37,12 @@ export interface Organization {
   techField?: string;
   researchField?: string;
   careerYears?: number;
+  /** 기업부설연구소 보유 (한국산업기술진흥협회 KOITA 인정) */
+  hasResearchInstitute?: boolean;
+  /** 연구개발전담부서 보유 (KOITA 인정) */
+  hasResearchDepartment?: boolean;
+  /** 보유 인증 (이노비즈·벤처·메인비즈·ISO·특허 등) */
+  certifications?: string[];
   notes?: string;
 }
 
@@ -46,9 +52,17 @@ export interface PersonalProfile {
   /** @deprecated v2 잔존 필드. 새 코드는 birthDate 사용. 마이그레이션에서 birthDate가 없을 때 fallback. */
   age?: number;
   region?: string;
+  /** 시·도 하위의 구·군 (예: 강남구, 분당구) */
+  subRegion?: string;
   incomeLevel?: "저소득" | "중위소득" | "일반";
   employmentStatus?: "재직" | "구직" | "학생" | "기타";
   householdType?: "1인" | "신혼" | "다자녀" | "일반";
+  /** 자녀 유무 (출산/육아 혜택 매칭) */
+  hasChildren?: boolean;
+  /** 등록 장애인 (장애인 혜택 매칭) */
+  isDisabled?: boolean;
+  /** 국가유공자/보훈대상 (보훈 혜택 매칭) */
+  isVeteran?: boolean;
 }
 
 export type ContextId = "personal" | string; // "personal" 또는 org.id

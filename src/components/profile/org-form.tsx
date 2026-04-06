@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,9 @@ export function OrgFormDialog({
   const [techField, setTechField] = useState("");
   const [researchField, setResearchField] = useState("");
   const [careerYears, setCareerYears] = useState("");
+  const [hasResearchInstitute, setHasResearchInstitute] = useState(false);
+  const [hasResearchDepartment, setHasResearchDepartment] = useState(false);
+  const [certifications, setCertifications] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
   // 모달이 열릴 때 initial 값으로 초기화
@@ -72,6 +76,9 @@ export function OrgFormDialog({
     setTechField(initial?.techField ?? "");
     setResearchField(initial?.researchField ?? "");
     setCareerYears(initial?.careerYears?.toString() ?? "");
+    setHasResearchInstitute(initial?.hasResearchInstitute ?? false);
+    setHasResearchDepartment(initial?.hasResearchDepartment ?? false);
+    setCertifications(initial?.certifications ?? []);
     setNotes(initial?.notes ?? "");
   }, [open, initial]);
 
@@ -89,6 +96,9 @@ export function OrgFormDialog({
     if (techField) org.techField = techField;
     if (researchField) org.researchField = researchField;
     if (careerYears) org.careerYears = Number(careerYears);
+    if (hasResearchInstitute) org.hasResearchInstitute = true;
+    if (hasResearchDepartment) org.hasResearchDepartment = true;
+    if (certifications.length > 0) org.certifications = certifications;
     if (notes) org.notes = notes;
     onSubmit(org);
     onOpenChange(false);
@@ -196,6 +206,64 @@ export function OrgFormDialog({
                   onChange={(e) => setTechField(e.target.value)}
                   placeholder="예: AI, 바이오, IoT"
                 />
+              </div>
+              <div className="space-y-3 rounded-lg border p-3">
+                <Label className="text-sm font-medium">연구조직 보유 현황</Label>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    checked={hasResearchInstitute}
+                    onCheckedChange={(v) => setHasResearchInstitute(v === true)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      기업부설연구소
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      한국산업기술진흥협회(KOITA) 인정
+                    </p>
+                  </div>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    checked={hasResearchDepartment}
+                    onCheckedChange={(v) => setHasResearchDepartment(v === true)}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      연구개발전담부서
+                    </span>
+                    <p className="text-xs text-gray-400">KOITA 인정</p>
+                  </div>
+                </label>
+              </div>
+              <div className="space-y-3 rounded-lg border p-3">
+                <Label className="text-sm font-medium">
+                  보유 인증 (해당 시 체크)
+                </Label>
+                {[
+                  "이노비즈(Innobiz)",
+                  "벤처기업",
+                  "메인비즈(Mainbiz)",
+                  "ISO 인증",
+                  "특허 보유",
+                ].map((cert) => (
+                  <label
+                    key={cert}
+                    className="flex cursor-pointer items-center gap-3"
+                  >
+                    <Checkbox
+                      checked={certifications.includes(cert)}
+                      onCheckedChange={(v) =>
+                        setCertifications((prev) =>
+                          v === true
+                            ? [...prev, cert]
+                            : prev.filter((c) => c !== cert)
+                        )
+                      }
+                    />
+                    <span className="text-sm text-gray-700">{cert}</span>
+                  </label>
+                ))}
               </div>
             </>
           )}

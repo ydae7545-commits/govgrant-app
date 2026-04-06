@@ -74,6 +74,14 @@ export function GrantCard({ grant }: { grant: Grant }) {
           {grant.title}
         </h3>
         <p className="line-clamp-2 text-sm text-gray-500">{grant.summary}</p>
+        {grant.consortiumMatch && grant.consortium && (
+          <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+            <span>🤝</span>
+            <span className="line-clamp-1">
+              컨소시엄 참여 가능 · {grant.consortium.role}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">

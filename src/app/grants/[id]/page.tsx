@@ -228,8 +228,58 @@ export default function GrantDetailPage({
               </span>
             </li>
           )}
+          {grant.eligibility.requiresResearchInstitute && (
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <span className="text-sm font-medium text-amber-700">
+                기업부설연구소 보유 필수
+              </span>
+            </li>
+          )}
+          {grant.eligibility.requiresResearchDepartment &&
+            !grant.eligibility.requiresResearchInstitute && (
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <span className="text-sm font-medium text-amber-700">
+                  연구개발전담부서 이상 보유 필수 (연구소 또는 전담부서)
+                </span>
+              </li>
+            )}
         </ul>
       </div>
+
+      {/* Consortium Info */}
+      {grant.consortium?.possible && (
+        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-emerald-800">
+            <span>🤝</span> 컨소시엄 참여 안내
+          </h2>
+          <div className="space-y-2 text-sm text-emerald-700">
+            {grant.consortium.role && (
+              <p>
+                <span className="font-medium">참여 역할:</span>{" "}
+                {grant.consortium.role}
+              </p>
+            )}
+            <div>
+              <span className="font-medium">적용 가능 기술분야:</span>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {grant.consortium.applicableTechFields.map((field) => (
+                  <span
+                    key={field}
+                    className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800"
+                  >
+                    {field}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-emerald-600">
+              해당 기술분야의 기업/연구기관이 컨소시엄으로 참여할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tags */}
       {grant.tags.length > 0 && (
