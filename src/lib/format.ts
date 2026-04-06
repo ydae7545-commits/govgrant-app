@@ -49,6 +49,47 @@ export function calculateAge(
   return fallbackAge;
 }
 
+/**
+ * "원문 보기" 용 URL 생성.
+ *
+ * Mock 데이터의 grant.url 은 일부가 기관 홈페이지/랜딩으로만 연결되어 있다
+ * (세부 공고 URL은 운영 중 자주 바뀌고 영구 링크가 보장되지 않아
+ * 인위적으로 고정하면 쉽게 404가 된다).
+ *
+ * 이 헬퍼는 다음 규칙으로 "실제 세부 공고"에 가까운 링크를 만든다:
+ *
+ * 1) grant.url 이 이미 세부 경로(홈페이지 루트가 아닌 path·query 를 가진 URL)
+ *    이면 그대로 사용한다. 예) `gov.kr/search?srhQuery=...`,
+ *    `nrf.re.kr/biz/info/notice/list?menu_no=378`.
+ * 2) 홈페이지 루트에 가까운 URL(`/`, `/landing` 등)이면 정부24 통합 검색
+ *    `https://www.gov.kr/search?srhQuery=<공고 제목>` 으로 교체한다.
+ *    정부24는 한국 정부의 공식 통합 포털로 부처·지자체·기관의 복지/사업
+ *    공고를 모두 색인하므로, 실제 공고가 존재하면 상단에 노출된다.
+ * 3) URL 파싱 실패 시 원본 URL을 그대로 반환한다.
+ */
+export function getOriginalSourceUrl(params: {
+  url: string;
+  title: string;
+  organization: string;
+}): string {
+  const { url, title } = params;
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname.replace(/\/+$/, ""); // 끝 슬래시 제거
+    const hasQuery = parsed.search.length > 0;
+    const isHomepageRoot =
+      (path === "" || path === "/landing" || path === "/main") && !hasQuery;
+    if (!isHomepageRoot) {
+      // 이미 세부 경로·쿼리가 지정된 URL이면 그대로 사용
+      return url;
+    }
+    const q = encodeURIComponent(title);
+    return `https://www.gov.kr/search?srhQuery=${q}`;
+  } catch {
+    return url;
+  }
+}
+
 export function formatBirthDate(birthDate: string | undefined): string {
   if (!birthDate) return "-";
   try {

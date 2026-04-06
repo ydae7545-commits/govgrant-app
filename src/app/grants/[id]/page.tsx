@@ -17,7 +17,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useUserStore } from "@/store/user-store";
 import { calculateMatchScore } from "@/lib/match-score";
-import { formatDate, formatAmountRange, getDeadlineLabel } from "@/lib/format";
+import {
+  formatDate,
+  formatAmountRange,
+  getDeadlineLabel,
+  getOriginalSourceUrl,
+} from "@/lib/format";
 import type { Grant } from "@/types/grant";
 
 export default function GrantDetailPage({
@@ -257,7 +262,15 @@ export default function GrantDetailPage({
           {isSaved ? "저장됨" : "저장하기"}
         </Button>
         <Button asChild className="flex-1">
-          <a href={grant.url} target="_blank" rel="noopener noreferrer">
+          <a
+            href={getOriginalSourceUrl({
+              url: grant.url,
+              title: grant.title,
+              organization: grant.organization,
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <ExternalLink className="mr-2 h-4 w-4" />
             원문 보기
           </a>
