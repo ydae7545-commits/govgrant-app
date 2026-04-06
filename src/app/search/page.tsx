@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { GrantCard } from "@/components/grant/grant-card";
+import { ContextTabs } from "@/components/profile/context-tabs";
+import { SignInBanner } from "@/components/profile/sign-in-banner";
+import { useUserStore } from "@/store/user-store";
 import { REGIONS } from "@/data/mock-regions";
 import type { Grant, GrantCategory } from "@/types/grant";
 
@@ -40,7 +43,11 @@ const CATEGORIES: GrantCategory[] = [
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">Loading...</div>
+      }
+    >
       <SearchContent />
     </Suspense>
   );
@@ -49,6 +56,7 @@ export default function SearchPage() {
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const account = useUserStore((s) => s.account);
 
   const [mounted, setMounted] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
@@ -60,7 +68,6 @@ function SearchContent() {
   // Filters
   const [keyword, setKeyword] = useState(searchParams.get("keyword") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "");
-  const [targetType, setTargetType] = useState(searchParams.get("targetType") || "");
   const [region, setRegion] = useState(searchParams.get("region") || "");
   const [status, setStatus] = useState(searchParams.get("status") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "deadline");
@@ -70,6 +77,14 @@ function SearchContent() {
     setMounted(true);
   }, []);
 
+  // activeContextId 변화 감지 → refetch
+  const activeContextId = account?.activeContextId ?? null;
+  const activeOrg =
+    account?.activeContextId && account.activeContextId !== "personal"
+      ? account.organizations.find((o) => o.id === account.activeContextId)
+      : null;
+  const activeOrgKind = activeOrg?.kind ?? "";
+
   const fetchGrants = useCallback(
     async (currentPage: number, append = false) => {
       setLoading(true);
@@ -77,12 +92,19 @@ function SearchContent() {
         const params = new URLSearchParams();
         if (keyword) params.set("keyword", keyword);
         if (category) params.set("category", category);
-        if (targetType) params.set("targetType", targetType);
         if (region) params.set("region", region);
         if (status) params.set("status", status);
         params.set("sort", sort);
         params.set("page", String(currentPage));
         params.set("limit", "12");
+
+        // 컨텍스트 필터
+        if (activeContextId === "personal") {
+          params.set("contextKind", "personal");
+        } else if (activeContextId && activeOrgKind) {
+          params.set("contextKind", "org");
+          params.set("orgKind", activeOrgKind);
+        }
 
         const res = await fetch(`/api/grants?${params.toString()}`);
         const data = await res.json();
@@ -96,12 +118,12 @@ function SearchContent() {
         setPage(data.page || 1);
         setTotalPages(data.totalPages || 1);
       } catch {
-        // silent fail
+        // silent
       } finally {
         setLoading(false);
       }
     },
-    [keyword, category, targetType, region, status, sort]
+    [keyword, category, region, status, sort, activeContextId, activeOrgKind]
   );
 
   useEffect(() => {
@@ -115,12 +137,11 @@ function SearchContent() {
     const params = new URLSearchParams();
     if (keyword) params.set("keyword", keyword);
     if (category) params.set("category", category);
-    if (targetType) params.set("targetType", targetType);
     if (region) params.set("region", region);
     if (status) params.set("status", status);
     if (sort !== "deadline") params.set("sort", sort);
     router.replace(`/search?${params.toString()}`, { scroll: false });
-  }, [mounted, keyword, category, targetType, region, status, sort, router]);
+  }, [mounted, keyword, category, region, status, sort, router]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,24 +154,11 @@ function SearchContent() {
     }
   };
 
-  if (!mounted) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (!mounted)
+    return <div className="p-8 text-center text-gray-400">Loading...</div>;
 
   const FilterPanel = () => (
     <div className="space-y-4">
-      <div>
-        <Label>대상 유형</Label>
-        <Select value={targetType} onValueChange={setTargetType}>
-          <SelectTrigger>
-            <SelectValue placeholder="전체" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="individual">개인</SelectItem>
-            <SelectItem value="sme">중소기업</SelectItem>
-            <SelectItem value="research">연구기관</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
       <div>
         <Label>지역</Label>
         <Select value={region} onValueChange={setRegion}>
@@ -187,6 +195,12 @@ function SearchContent() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
+      {/* Sign-in Banner */}
+      {!account && <SignInBanner />}
+
+      {/* Context Tabs */}
+      {account && <ContextTabs />}
+
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="mb-4">
         <div className="relative">
@@ -232,9 +246,7 @@ function SearchContent() {
         <div className="flex-1">
           {/* Top Bar */}
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm text-gray-500">
-              {total}개의 결과
-            </span>
+            <span className="text-sm text-gray-500">{total}개의 결과</span>
             <div className="flex items-center gap-2">
               <Select value={sort} onValueChange={setSort}>
                 <SelectTrigger className="w-36">
@@ -276,21 +288,8 @@ function SearchContent() {
           </div>
 
           {/* Active Filters */}
-          {(targetType || region || status) && (
+          {(region || status) && (
             <div className="mb-4 flex flex-wrap gap-2">
-              {targetType && targetType !== "all" && (
-                <Badge variant="secondary" className="gap-1">
-                  {targetType === "individual"
-                    ? "개인"
-                    : targetType === "sme"
-                      ? "중소기업"
-                      : "연구기관"}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => setTargetType("")}
-                  />
-                </Badge>
-              )}
               {region && region !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   {region}

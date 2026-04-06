@@ -22,7 +22,8 @@ interface Message {
 export default function ChatPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const { profile } = useUserStore();
+  const account = useUserStore((s) => s.account);
+  const getActiveContext = useUserStore((s) => s.getActiveContext);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -70,12 +71,22 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      // 활성 컨텍스트에서 사용자 유형 추론 (개인 복지 → individual, 기관 → sme/research 등)
+      const ctx = getActiveContext();
+      let profileType: string | undefined;
+      if (ctx?.kind === "personal") {
+        profileType = "individual";
+      } else if (ctx?.kind === "org") {
+        if (ctx.org.kind === "sme" || ctx.org.kind === "sole")
+          profileType = "sme";
+        else if (ctx.org.kind === "research") profileType = "research";
+      }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          profileType: profile?.type,
+          profileType,
         }),
       });
       const data = await res.json();

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles, Clock, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles, Clock, Eye } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { GrantCard } from "@/components/grant/grant-card";
+import { ContextTabs } from "@/components/profile/context-tabs";
+import { SignInBanner } from "@/components/profile/sign-in-banner";
 import { useUserStore } from "@/store/user-store";
 import type { Grant } from "@/types/grant";
 
@@ -16,11 +17,16 @@ export default function DashboardPage() {
   const [recentGrants, setRecentGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { profile, recentViewedIds } = useUserStore();
+  const account = useUserStore((s) => s.account);
+  const recentViewedIds = useUserStore((s) => s.recentViewedIds);
+  const getActiveContext = useUserStore((s) => s.getActiveContext);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // activeContextId · account 변화 감지용
+  const activeContextId = account?.activeContextId ?? null;
 
   useEffect(() => {
     if (!mounted) return;
@@ -28,18 +34,31 @@ export default function DashboardPage() {
     async function fetchData() {
       setLoading(true);
       try {
+        const context = getActiveContext();
+
         // Fetch recommendations
         const recRes = await fetch("/api/recommendations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile }),
+          body: JSON.stringify({ context }),
         });
         const recData = await recRes.json();
         setRecommendations(recData.grants || []);
 
-        // Fetch deadline-soon grants
+        // Fetch deadline-soon grants (컨텍스트별 필터링)
+        const deadlineParams = new URLSearchParams({
+          sort: "deadline",
+          limit: "10",
+          status: "마감임박",
+        });
+        if (context?.kind === "personal") {
+          deadlineParams.set("contextKind", "personal");
+        } else if (context?.kind === "org") {
+          deadlineParams.set("contextKind", "org");
+          deadlineParams.set("orgKind", context.org.kind);
+        }
         const deadlineRes = await fetch(
-          "/api/grants?sort=deadline&limit=10&status=마감임박"
+          `/api/grants?${deadlineParams.toString()}`
         );
         const deadlineData = await deadlineRes.json();
         setDeadlineSoon(deadlineData.grants || []);
@@ -51,6 +70,8 @@ export default function DashboardPage() {
           );
           const recentResults = await Promise.all(recentPromises);
           setRecentGrants(recentResults.filter((g) => g && !g.error));
+        } else {
+          setRecentGrants([]);
         }
       } catch {
         // silent fail
@@ -60,43 +81,36 @@ export default function DashboardPage() {
     }
 
     fetchData();
-  }, [mounted, profile, recentViewedIds]);
+  }, [mounted, activeContextId, recentViewedIds, getActiveContext]);
 
-  if (!mounted) return <div className="p-8 text-center text-gray-400">Loading...</div>;
+  if (!mounted)
+    return <div className="p-8 text-center text-gray-400">Loading...</div>;
+
+  const contextLabel =
+    account?.activeContextId === "personal"
+      ? "개인 복지"
+      : account?.organizations.find((o) => o.id === account.activeContextId)
+          ?.name ?? "";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Greeting */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {profile ? `${profile.name}님, 안녕하세요!` : "안녕하세요!"}
+          {account ? `${account.displayName}님, 안녕하세요!` : "안녕하세요!"}
         </h1>
         <p className="mt-1 text-gray-500">
-          오늘의 맞춤 지원사업을 확인해보세요
+          {account
+            ? `${contextLabel} 맞춤 지원사업입니다`
+            : "오늘의 맞춤 지원사업을 확인해보세요"}
         </p>
       </div>
 
-      {/* No Profile Banner */}
-      {!profile && (
-        <Card className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
-          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-900">
-                프로필을 설정하면 맞춤 추천을 받을 수 있어요!
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                간단한 프로필 입력으로 나에게 딱 맞는 지원사업을 찾아보세요.
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/onboarding">
-                프로필 설정하기
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </Card>
-      )}
+      {/* Sign-in Banner */}
+      {!account && <SignInBanner />}
+
+      {/* Context Tabs */}
+      {account && <ContextTabs />}
 
       {loading ? (
         <div className="py-12 text-center text-gray-400">
@@ -111,7 +125,10 @@ export default function DashboardPage() {
                 <Sparkles className="h-5 w-5 text-blue-600" />
                 맞춤 추천
               </h2>
-              <Link href="/search" className="text-sm text-blue-600 hover:underline">
+              <Link
+                href="/search"
+                className="text-sm text-blue-600 hover:underline"
+              >
                 전체 보기
               </Link>
             </div>
@@ -123,7 +140,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <Card className="p-8 text-center text-gray-400">
-                추천 결과가 없습니다. 프로필을 설정해보세요.
+                {account
+                  ? "이 컨텍스트에 맞는 추천 결과가 없습니다. 관심 분야나 소속 기관을 수정해보세요."
+                  : "프로필을 설정하면 맞춤 추천을 받을 수 있어요."}
               </Card>
             )}
           </section>

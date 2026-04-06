@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Landmark, Search, Bell } from "lucide-react";
+import { ContextSwitcher } from "@/components/profile/context-switcher";
+import { useUserStore } from "@/store/user-store";
 
 export function Header() {
   const pathname = usePathname();
+  const account = useUserStore((s) => s.account);
 
   if (pathname === "/" || pathname.startsWith("/onboarding")) return null;
 
@@ -36,6 +39,16 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {account ? (
+            <ContextSwitcher />
+          ) : (
+            <Link
+              href="/onboarding"
+              className="hidden rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 sm:block"
+            >
+              시작하기
+            </Link>
+          )}
           <Link
             href="/search"
             className="rounded-full p-2 hover:bg-gray-100 md:hidden"

@@ -30,8 +30,11 @@ export default function GrantDetailPage({
   const [grant, setGrant] = useState<Grant | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { profile, savedGrantIds, toggleSaveGrant, addRecentViewed } =
-    useUserStore();
+  const account = useUserStore((s) => s.account);
+  const savedGrantIds = useUserStore((s) => s.savedGrantIds);
+  const toggleSaveGrant = useUserStore((s) => s.toggleSaveGrant);
+  const addRecentViewed = useUserStore((s) => s.addRecentViewed);
+  const getActiveContext = useUserStore((s) => s.getActiveContext);
 
   useEffect(() => {
     setMounted(true);
@@ -75,7 +78,7 @@ export default function GrantDetailPage({
 
   const isSaved = savedGrantIds.includes(grant.id);
   const deadline = getDeadlineLabel(grant.applicationEnd);
-  const matchScore = profile ? calculateMatchScore(grant, profile) : null;
+  const matchScore = account ? calculateMatchScore(grant, getActiveContext()) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">

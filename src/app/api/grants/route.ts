@@ -1,16 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockGrants } from "@/data/mock-grants";
 import { daysUntil } from "@/lib/format";
-import type { Grant, GrantStatus } from "@/types/grant";
+import type { Grant, GrantStatus, UserType } from "@/types/grant";
+import type { OrgKind } from "@/types/user";
 
 function getGrantStatus(grant: Grant): GrantStatus {
   const daysToEnd = daysUntil(grant.applicationEnd);
   const daysToStart = daysUntil(grant.applicationStart);
 
-  if (daysToStart > 0) return "\uBAA8\uC9D1\uC608\uC815";
-  if (daysToEnd < 0) return "\uB9C8\uAC10";
-  if (daysToEnd <= 7) return "\uB9C8\uAC10\uC784\uBC15";
-  return "\uBAA8\uC9D1\uC911";
+  if (daysToStart > 0) return "모집예정";
+  if (daysToEnd < 0) return "마감";
+  if (daysToEnd <= 7) return "마감임박";
+  return "모집중";
+}
+
+function orgKindToUserType(kind: string): UserType | null {
+  switch (kind as OrgKind) {
+    case "sme":
+    case "sole":
+      return "sme";
+    case "research":
+      return "research";
+    default:
+      return null;
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -18,7 +31,9 @@ export async function GET(request: NextRequest) {
 
   const keyword = searchParams.get("keyword") || "";
   const category = searchParams.get("category") || "";
-  const targetType = searchParams.get("targetType") || "";
+  const targetType = searchParams.get("targetType") || ""; // deprecated, 하위호환
+  const contextKind = searchParams.get("contextKind") || ""; // "personal" | "org"
+  const orgKind = searchParams.get("orgKind") || "";
   const region = searchParams.get("region") || "";
   const status = searchParams.get("status") || "";
   const sort = searchParams.get("sort") || "deadline";
@@ -44,17 +59,26 @@ export async function GET(request: NextRequest) {
     filtered = filtered.filter((g) => g.category === category);
   }
 
-  // Target type filter
-  if (targetType && targetType !== "all") {
+  // Context filter (uppercase priority over deprecated targetType)
+  if (contextKind === "personal") {
+    filtered = filtered.filter((g) => g.targetTypes.includes("individual"));
+  } else if (contextKind === "org") {
+    const mapped = orgKindToUserType(orgKind);
+    if (mapped) {
+      filtered = filtered.filter((g) => g.targetTypes.includes(mapped));
+    }
+    // public/nonprofit/other 등 매핑 불가 기관은 전체 표시 (타입 보너스 없음)
+  } else if (targetType && targetType !== "all") {
+    // 구 파라미터 하위호환
     filtered = filtered.filter((g) =>
-      g.targetTypes.includes(targetType as Grant["targetTypes"][number])
+      g.targetTypes.includes(targetType as UserType)
     );
   }
 
   // Region filter
   if (region && region !== "all") {
     filtered = filtered.filter(
-      (g) => g.region === region || g.region === "\uC804\uAD6D"
+      (g) => g.region === region || g.region === "전국"
     );
   }
 
