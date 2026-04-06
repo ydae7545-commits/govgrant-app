@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Landmark, Search, Bell } from "lucide-react";
+
+export function Header() {
+  const pathname = usePathname();
+
+  if (pathname === "/" || pathname.startsWith("/onboarding")) return null;
+
+  return (
+    <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Landmark className="h-6 w-6 text-blue-600" />
+          <span className="text-lg font-bold text-gray-900">지원금 찾기</span>
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          <NavLink href="/dashboard" current={pathname}>
+            홈
+          </NavLink>
+          <NavLink href="/search" current={pathname}>
+            검색
+          </NavLink>
+          <NavLink href="/calendar" current={pathname}>
+            캘린더
+          </NavLink>
+          <NavLink href="/chat" current={pathname}>
+            AI 상담
+          </NavLink>
+          <NavLink href="/mypage" current={pathname}>
+            마이
+          </NavLink>
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/search"
+            className="rounded-full p-2 hover:bg-gray-100 md:hidden"
+          >
+            <Search className="h-5 w-5 text-gray-600" />
+          </Link>
+          <button className="rounded-full p-2 hover:bg-gray-100">
+            <Bell className="h-5 w-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function NavLink({
+  href,
+  current,
+  children,
+}: {
+  href: string;
+  current: string;
+  children: React.ReactNode;
+}) {
+  const active = current.startsWith(href);
+  return (
+    <Link
+      href={href}
+      className={`text-sm font-medium transition-colors ${
+        active ? "text-blue-600" : "text-gray-600 hover:text-gray-900"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
