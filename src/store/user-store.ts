@@ -39,6 +39,23 @@ interface UserState {
   toggleSaveGrant: (grantId: string) => void;
   isGrantSaved: (grantId: string) => boolean;
   addRecentViewed: (grantId: string) => void;
+
+  // Phase 1 — Supabase hydration
+  // Replaces the entire store state from a Supabase fetch result. Called
+  // by the useAccountHydration hook after a successful sign-in or session
+  // refresh. Passing `null` clears the account but keeps saved/recent
+  // arrays so the user sees them again if they sign back in.
+  setAccountFromSupabase: (
+    data:
+      | {
+          account: UserAccount;
+          savedGrantIds: string[];
+          recentViewedIds: string[];
+        }
+      | null
+  ) => void;
+  // Clear everything (used by sign-out handler on the client side).
+  clearAccount: () => void;
 }
 
 function genId(): string {
@@ -197,6 +214,25 @@ export const useUserStore = create<UserState>()(
           const filtered = state.recentViewedIds.filter((id) => id !== grantId);
           return { recentViewedIds: [grantId, ...filtered].slice(0, 20) };
         }),
+
+      // Phase 1: bulk replace state with a Supabase fetch result. Keeps the
+      // store shape identical to the local-only path so no downstream
+      // component needs to care whether the source is localStorage or
+      // Postgres.
+      setAccountFromSupabase: (data) =>
+        set(() => {
+          if (data === null) {
+            return { account: null };
+          }
+          return {
+            account: data.account,
+            savedGrantIds: data.savedGrantIds,
+            recentViewedIds: data.recentViewedIds,
+          };
+        }),
+
+      clearAccount: () =>
+        set({ account: null, savedGrantIds: [], recentViewedIds: [] }),
     }),
     {
       name: "govgrant-user",

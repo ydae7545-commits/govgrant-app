@@ -11,8 +11,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { featureFlags } from "@/lib/env";
 
 export default function LandingPage() {
+  // Phase 1: CTA destinations depend on whether Supabase auth is enabled.
+  // - Supabase on:  /auth/sign-in → OAuth → /onboarding (first time) or /dashboard
+  // - Supabase off: /onboarding (local-only)
+  const startHref = featureFlags.useSupabase ? "/auth/sign-in" : "/onboarding";
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero */}
@@ -39,7 +45,7 @@ export default function LandingPage() {
               size="lg"
               className="w-full bg-white text-blue-700 hover:bg-blue-50 sm:w-auto"
             >
-              <Link href="/onboarding">
+              <Link href={startHref}>
                 무료로 시작하기
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -140,7 +146,7 @@ export default function LandingPage() {
             확인해보세요.
           </p>
           <Button asChild size="lg" className="px-8">
-            <Link href="/onboarding">
+            <Link href={startHref}>
               맞춤 추천 받기
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>

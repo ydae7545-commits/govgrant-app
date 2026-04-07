@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Landmark, Search, Bell } from "lucide-react";
 import { ContextSwitcher } from "@/components/profile/context-switcher";
 import { useUserStore } from "@/store/user-store";
+import { featureFlags } from "@/lib/env";
 
 export function Header() {
   const pathname = usePathname();
@@ -43,7 +44,7 @@ export function Header() {
             <ContextSwitcher />
           ) : (
             <Link
-              href="/onboarding"
+              href={featureFlags.useSupabase ? "/auth/sign-in" : "/onboarding"}
               className="hidden rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 sm:block"
             >
               시작하기

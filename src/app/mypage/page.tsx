@@ -22,6 +22,8 @@ import { SignInBanner } from "@/components/profile/sign-in-banner";
 import { useUserStore } from "@/store/user-store";
 import { mockGrants } from "@/data/mock-grants";
 import { calculateAge, formatBirthDate } from "@/lib/format";
+import { featureFlags } from "@/lib/env";
+import { createClient } from "@/lib/supabase/client";
 import type { Grant } from "@/types/grant";
 
 export default function MyPage() {
@@ -47,11 +49,26 @@ export default function MyPage() {
     .map((id) => mockGrants.find((g) => g.id === id))
     .filter((g): g is Grant => !!g);
 
-  const handleSignOut = () => {
-    if (confirm("로그아웃하시겠습니까? 저장된 프로필과 기관 정보가 모두 지워집니다.")) {
-      signOut();
-      router.push("/");
+  const handleSignOut = async () => {
+    const msg = featureFlags.useSupabase
+      ? "로그아웃하시겠습니까?"
+      : "로그아웃하시겠습니까? 저장된 프로필과 기관 정보가 이 기기에서 지워집니다.";
+    if (!confirm(msg)) return;
+
+    // In Supabase mode: call the real auth signOut so cookies are cleared.
+    // The hydration hook will then see no user and clear the store.
+    if (featureFlags.useSupabase) {
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {
+        // Fall through — we still want to clear local state below.
+      }
     }
+
+    // Always clear the local Zustand store as a final safety net.
+    signOut();
+    router.push("/");
   };
 
   return (

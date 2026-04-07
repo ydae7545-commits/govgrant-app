@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { AuthHydrationProvider } from "@/components/auth/hydration-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
+        <AuthHydrationProvider />
         <Header />
         <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <MobileNav />
