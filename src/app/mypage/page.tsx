@@ -83,7 +83,10 @@ export default function MyPage() {
             <h1 className="text-xl font-bold text-gray-900">
               {account.displayName}
             </h1>
-            <p className="text-sm text-gray-500">
+            {account.email && (
+              <p className="text-sm text-gray-500">{account.email}</p>
+            )}
+            <p className="text-xs text-gray-400">
               {account.organizations.length > 0
                 ? `${account.organizations.length}개 기관 등록`
                 : "개인 사용자"}
