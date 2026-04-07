@@ -59,24 +59,47 @@ export async function GET(
   const safeFilename = sanitizeFilename(title);
 
   if (format === "md") {
-    const md = renderMarkdown(title, sections);
-    return new Response(md, {
-      headers: {
-        "content-type": "text/markdown; charset=utf-8",
-        "content-disposition": `attachment; filename="${safeFilename}.md"`,
-      },
-    });
+    try {
+      const md = renderMarkdown(title, sections);
+      return new Response(md, {
+        headers: {
+          "content-type": "text/markdown; charset=utf-8",
+          "content-disposition": buildContentDisposition(safeFilename, "md"),
+          "cache-control": "no-store",
+        },
+      });
+    } catch (err) {
+      console.error("[govgrant-proposal:download:md]", err);
+      return new Response(
+        `md_render_failed: ${err instanceof Error ? err.message : String(err)}`,
+        { status: 500 }
+      );
+    }
   }
 
   if (format === "docx") {
-    const buf = await renderDocx(title, sections);
-    return new Response(buf as unknown as BodyInit, {
-      headers: {
-        "content-type":
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "content-disposition": `attachment; filename="${safeFilename}.docx"`,
-      },
-    });
+    try {
+      const buf = await renderDocx(title, sections);
+      // Buffer is a Uint8Array subclass but Web Response expects ArrayBuffer
+      // / Uint8Array / Blob. Slice into a fresh Uint8Array to avoid Node↔Web
+      // type quirks in Next.js 16.
+      const bytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+      return new Response(bytes as unknown as BodyInit, {
+        headers: {
+          "content-type":
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "content-disposition": buildContentDisposition(safeFilename, "docx"),
+          "content-length": String(bytes.byteLength),
+          "cache-control": "no-store",
+        },
+      });
+    } catch (err) {
+      console.error("[govgrant-proposal:download:docx]", err);
+      return new Response(
+        `docx_render_failed: ${err instanceof Error ? err.message : String(err)}`,
+        { status: 500 }
+      );
+    }
   }
 
   return new Response("invalid_format", { status: 400 });
@@ -84,6 +107,22 @@ export async function GET(
 
 function sanitizeFilename(s: string): string {
   return s.replace(/[\\/:*?"<>|]/g, "_").slice(0, 80) || "proposal";
+}
+
+/**
+ * HTTP `content-disposition` headers are ByteString — non-ASCII characters
+ * (e.g. Korean) throw at the Response constructor. We always send a safe
+ * ASCII fallback in `filename=` and the real UTF-8 name in `filename*=...`
+ * (RFC 5987). Browsers that understand `filename*` will use the Korean
+ * name; older clients fall back to the ASCII version.
+ */
+function buildContentDisposition(name: string, ext: string): string {
+  const utf8 = encodeURIComponent(`${name}.${ext}`);
+  // ASCII fallback: strip everything that isn't safe.
+  const ascii =
+    name.replace(/[^\x20-\x7e]/g, "_").replace(/[\\/:*?"<>|]/g, "_") ||
+    "proposal";
+  return `attachment; filename="${ascii}.${ext}"; filename*=UTF-8''${utf8}`;
 }
 
 function renderMarkdown(title: string, sections: ProposalSections): string {

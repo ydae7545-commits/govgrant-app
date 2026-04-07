@@ -76,18 +76,30 @@ export function ProposalToolbar(props: ProposalToolbarProps) {
             )}
             저장
           </Button>
-          <Button size="sm" variant="outline" asChild disabled={streaming}>
-            <a href={`/proposals/${proposal.id}/download?format=md`}>
-              <Download className="mr-1 h-3.5 w-3.5" />
-              .md
-            </a>
-          </Button>
-          <Button size="sm" variant="outline" asChild disabled={streaming}>
-            <a href={`/proposals/${proposal.id}/download?format=docx`}>
-              <Download className="mr-1 h-3.5 w-3.5" />
-              .docx
-            </a>
-          </Button>
+          <a
+            href={`/proposals/${proposal.id}/download?format=md`}
+            target="_blank"
+            rel="noopener"
+            aria-disabled={streaming}
+            className={`inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent ${
+              streaming ? "pointer-events-none opacity-50" : ""
+            }`}
+          >
+            <Download className="h-3.5 w-3.5" />
+            .md
+          </a>
+          <a
+            href={`/proposals/${proposal.id}/download?format=docx`}
+            target="_blank"
+            rel="noopener"
+            aria-disabled={streaming}
+            className={`inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent ${
+              streaming ? "pointer-events-none opacity-50" : ""
+            }`}
+          >
+            <Download className="h-3.5 w-3.5" />
+            .docx
+          </a>
           <Button size="sm" onClick={onGenerateAll} disabled={streaming}>
             {streaming ? (
               <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
