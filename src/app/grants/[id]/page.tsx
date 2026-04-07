@@ -10,7 +10,9 @@ import {
   Calendar,
   MapPin,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
+import { featureFlags } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -296,6 +298,18 @@ export default function GrantDetailPage({
       )}
 
       <Separator className="mb-6" />
+
+      {/* Proposal CTA */}
+      {featureFlags.useProposalAi && (
+        <div className="mb-4">
+          <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+            <Link href={`/proposals/new?grantId=${grant.id}`}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI 사업계획서 초안 만들기
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">

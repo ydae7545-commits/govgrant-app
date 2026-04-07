@@ -34,6 +34,11 @@ export function Header() {
           <NavLink href="/chat" current={pathname}>
             AI 상담
           </NavLink>
+          {featureFlags.useProposalAi && (
+            <NavLink href="/proposals" current={pathname}>
+              사업계획서
+            </NavLink>
+          )}
           <NavLink href="/mypage" current={pathname}>
             마이
           </NavLink>

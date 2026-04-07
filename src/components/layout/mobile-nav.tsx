@@ -2,15 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, MessageSquare, CalendarDays, User } from "lucide-react";
+import { Home, Search, FileText, CalendarDays, User } from "lucide-react";
+import { featureFlags } from "@/lib/env";
 
-const navItems = [
+const baseNavItems = [
   { href: "/dashboard", label: "홈", icon: Home },
   { href: "/search", label: "검색", icon: Search },
-  { href: "/chat", label: "AI 상담", icon: MessageSquare },
   { href: "/calendar", label: "캘린더", icon: CalendarDays },
   { href: "/mypage", label: "마이", icon: User },
 ];
+
+const navItems = featureFlags.useProposalAi
+  ? [
+      baseNavItems[0],
+      baseNavItems[1],
+      { href: "/proposals", label: "계획서", icon: FileText },
+      baseNavItems[2],
+      baseNavItems[3],
+    ]
+  : baseNavItems;
 
 export function MobileNav() {
   const pathname = usePathname();
