@@ -10,6 +10,19 @@ import type {
   MatchContext,
 } from "@/types/user";
 import type { GrantCategory } from "@/types/grant";
+import {
+  syncUpdateDisplayName,
+  syncCompleteOnboarding,
+  syncSetActiveContext,
+  syncUpdatePersonal,
+  syncSetInterests,
+  syncAddOrganization,
+  syncUpdateOrganization,
+  syncRemoveOrganization,
+  syncSaveGrant,
+  syncUnsaveGrant,
+  syncAddRecentViewed,
+} from "@/store/supabase-sync";
 
 interface UserState {
   account: UserAccount | null;
@@ -75,10 +88,15 @@ export const useUserStore = create<UserState>()(
       signIn: (displayName) => {
         const existing = get().account;
         if (existing) {
-          // 이미 로그인 되어 있으면 이름만 업데이트
+          // 이미 로그인 되어 있으면 이름만 업데이트. Supabase 모드에서는
+          // OAuth가 이미 auth.users 행을 만들었고 displayName이 있으니
+          // 사용자가 이름을 수동으로 바꿀 때만 이 경로를 탄다.
           set({ account: { ...existing, displayName } });
+          syncUpdateDisplayName(existing.id, displayName);
           return;
         }
+        // 신규 로컬 계정 생성 (Supabase 모드에서는 이 경로 대신
+        // setAccountFromSupabase가 사용됨).
         const newAccount: UserAccount = {
           id: genId(),
           displayName: displayName || "사용자",
@@ -100,6 +118,9 @@ export const useUserStore = create<UserState>()(
       updatePersonal: (updates) =>
         set((state) => {
           if (!state.account) return state;
+          // Fire-and-forget sync. 실패해도 UI는 이미 업데이트됨, 다음 로그인 시
+          // 서버에서 재하이드레이션 되므로 결과는 최종적으로 수렴.
+          syncUpdatePersonal(state.account.id, updates);
           return {
             account: {
               ...state.account,
@@ -111,12 +132,14 @@ export const useUserStore = create<UserState>()(
       setInterests: (interests) =>
         set((state) => {
           if (!state.account) return state;
+          syncSetInterests(state.account.id, interests);
           return { account: { ...state.account, interests } };
         }),
 
       completeOnboarding: () =>
         set((state) => {
           if (!state.account) return state;
+          syncCompleteOnboarding(state.account.id);
           return { account: { ...state.account, completedOnboarding: true } };
         }),
 
@@ -124,6 +147,7 @@ export const useUserStore = create<UserState>()(
         const id = genId();
         set((state) => {
           if (!state.account) return state;
+          syncAddOrganization(state.account.id, id, org);
           return {
             account: {
               ...state.account,
@@ -137,6 +161,7 @@ export const useUserStore = create<UserState>()(
       updateOrganization: (id, updates) =>
         set((state) => {
           if (!state.account) return state;
+          syncUpdateOrganization(id, updates);
           return {
             account: {
               ...state.account,
@@ -157,6 +182,11 @@ export const useUserStore = create<UserState>()(
             state.account.activeContextId === id
               ? "personal"
               : state.account.activeContextId;
+          syncRemoveOrganization(id);
+          // activeContext fallback 도 서버에 반영
+          if (activeFallback !== state.account.activeContextId) {
+            syncSetActiveContext(state.account.id, activeFallback);
+          }
           return {
             account: {
               ...state.account,
@@ -174,6 +204,7 @@ export const useUserStore = create<UserState>()(
             id === "personal" ||
             state.account.organizations.some((o) => o.id === id);
           if (!valid) return state;
+          syncSetActiveContext(state.account.id, id);
           return { account: { ...state.account, activeContextId: id } };
         }),
 
@@ -201,16 +232,31 @@ export const useUserStore = create<UserState>()(
       },
 
       toggleSaveGrant: (grantId) =>
-        set((state) => ({
-          savedGrantIds: state.savedGrantIds.includes(grantId)
-            ? state.savedGrantIds.filter((id) => id !== grantId)
-            : [...state.savedGrantIds, grantId],
-        })),
+        set((state) => {
+          const alreadySaved = state.savedGrantIds.includes(grantId);
+          // Sync는 로그인된 경우에만. account가 null이면 익명 세션이므로
+          // 로컬에만 저장 (Supabase RLS가 어차피 거부).
+          if (state.account && state.account.id) {
+            if (alreadySaved) {
+              syncUnsaveGrant(state.account.id, grantId);
+            } else {
+              syncSaveGrant(state.account.id, grantId);
+            }
+          }
+          return {
+            savedGrantIds: alreadySaved
+              ? state.savedGrantIds.filter((id) => id !== grantId)
+              : [...state.savedGrantIds, grantId],
+          };
+        }),
 
       isGrantSaved: (grantId) => get().savedGrantIds.includes(grantId),
 
       addRecentViewed: (grantId) =>
         set((state) => {
+          if (state.account && state.account.id) {
+            syncAddRecentViewed(state.account.id, grantId);
+          }
           const filtered = state.recentViewedIds.filter((id) => id !== grantId);
           return { recentViewedIds: [grantId, ...filtered].slice(0, 20) };
         }),
