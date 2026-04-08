@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { mockGrants } from "@/data/mock-grants";
+import { findGrantById } from "@/lib/grants/repository";
 import {
   getLLM,
   canSpend,
@@ -258,9 +258,9 @@ export async function POST(
     );
   }
 
-  // Resolve grant
+  // Phase 6+: mock id 또는 Supabase UUID 둘 다 지원
   const grantId = proposalRow.grant_id as string;
-  const grant = mockGrants.find((g) => g.id === grantId);
+  const grant = await findGrantById(grantId);
   if (!grant) {
     return new Response(
       JSON.stringify({ error: "grant_not_found", grantId }),

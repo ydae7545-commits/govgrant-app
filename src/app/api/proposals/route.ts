@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { mockGrants } from "@/data/mock-grants";
+import { findGrantById } from "@/lib/grants/repository";
 import { featureFlags } from "@/lib/env";
 import type { Proposal } from "@/types/proposal";
 
@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
   }
   const { grantId, title, organizationId, llmModel } = parsed.data;
 
-  // Resolve grant title (Phase 1~5: mock data only)
-  // Phase 6 will replace this with a Supabase grants table query.
-  const grant = mockGrants.find((g) => g.id === grantId);
+  // Phase 6+: grants can be either mock ids (g001) or Supabase UUIDs.
+  // findGrantById handles both: mock first, then Supabase repository.
+  const grant = await findGrantById(grantId);
   if (!grant) {
     return NextResponse.json(
       { error: "grant_not_found", grantId },

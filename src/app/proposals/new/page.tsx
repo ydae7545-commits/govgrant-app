@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { mockGrants } from "@/data/mock-grants";
 import { useUserStore } from "@/store/user-store";
 import { featureFlags } from "@/lib/env";
 import { formatAmountRange } from "@/lib/format";
+import type { Grant } from "@/types/grant";
 
 function NewProposalContent() {
   const router = useRouter();
@@ -23,7 +24,12 @@ function NewProposalContent() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedGrant = mockGrants.find((g) => g.id === grantId);
+  // Phase 6에서 grants가 Supabase로 이동한 후로는 mock id(g001)가 아니라
+  // UUID가 들어오는 경우가 대부분이라 repository 기반 /api/grants/[id] 로
+  // 조회해야 한다. mockGrants.find()는 legacy fallback.
+  const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
   const orgs = account?.organizations ?? [];
 
   useEffect(() => {
@@ -31,6 +37,60 @@ function NewProposalContent() {
       setOrganizationId(account.activeContextId);
     }
   }, [account?.activeContextId]);
+
+  // grantId가 바뀔 때마다 먼저 mock에서 즉시 매칭 시도하고, 없으면 API에서
+  // fetch. 빈 값이면 선택 해제.
+  useEffect(() => {
+    if (!grantId.trim()) {
+      setSelectedGrant(null);
+      setLookupError(null);
+      return;
+    }
+    const id = grantId.trim();
+    const mockHit = mockGrants.find((g) => g.id === id);
+    if (mockHit) {
+      setSelectedGrant(mockHit);
+      setLookupError(null);
+      return;
+    }
+    // Mock에 없으면 Supabase에서 fetch (UUID 형식이나 source:external id)
+    let cancelled = false;
+    setLookingUp(true);
+    setLookupError(null);
+    (async () => {
+      try {
+        const res = await fetch(`/api/grants/${encodeURIComponent(id)}`);
+        if (!res.ok) {
+          if (!cancelled) {
+            setSelectedGrant(null);
+            setLookupError(
+              res.status === 404
+                ? "해당 ID의 과제를 찾을 수 없습니다."
+                : `조회 실패 (HTTP ${res.status})`
+            );
+          }
+          return;
+        }
+        const data = (await res.json()) as Grant;
+        if (!cancelled) {
+          setSelectedGrant(data);
+          setLookupError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSelectedGrant(null);
+          setLookupError(
+            err instanceof Error ? err.message : String(err)
+          );
+        }
+      } finally {
+        if (!cancelled) setLookingUp(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [grantId]);
 
   if (!featureFlags.useProposalAi) {
     return (
@@ -126,10 +186,18 @@ function NewProposalContent() {
                 <input
                   value={grantId}
                   onChange={(e) => setGrantId(e.target.value)}
-                  placeholder="예: g001"
+                  placeholder="예: g001 또는 UUID"
                   className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
                 />
+                {lookingUp && (
+                  <div className="flex items-center px-2 text-xs text-gray-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )}
               </div>
+              {lookupError && (
+                <p className="mt-2 text-xs text-red-600">⚠ {lookupError}</p>
+              )}
               <div className="mt-4 space-y-1">
                 <p className="text-xs font-medium text-gray-600">최근 과제</p>
                 {mockGrants.slice(0, 5).map((g) => (
