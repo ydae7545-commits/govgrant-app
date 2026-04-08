@@ -71,6 +71,12 @@ export interface PersonalProfile {
   birthDate?: string;
   /** @deprecated v2 잔존 필드. 새 코드는 birthDate 사용. 마이그레이션에서 birthDate가 없을 때 fallback. */
   age?: number;
+  /**
+   * Phase 6.6: 성별. 임산부/여성 전용 복지, 군인/국가유공자 등 성별 특정
+   * 서비스 매칭을 위해 필요. null/undefined면 매칭 점수에서 무시 (penalty 없음)
+   * — 사용자가 명시적으로 설정한 경우에만 필터링 적용.
+   */
+  gender?: "male" | "female";
   region?: string;
   /** 시·도 하위의 구·군 (예: 강남구, 분당구) */
   subRegion?: string;

@@ -64,6 +64,7 @@ export default function OnboardingPage() {
 
   // Step 2
   const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
   const [region, setRegion] = useState("");
   const [subRegion, setSubRegion] = useState("");
   const [incomeLevel, setIncomeLevel] = useState<
@@ -101,6 +102,7 @@ export default function OnboardingPage() {
     if (!mounted || !account) return;
     setDisplayName(account.displayName || "");
     setBirthDate(account.personal.birthDate ?? "");
+    setGender(account.personal.gender ?? "");
     setRegion(account.personal.region ?? "");
     setSubRegion(account.personal.subRegion ?? "");
     setIncomeLevel(account.personal.incomeLevel ?? "");
@@ -132,6 +134,7 @@ export default function OnboardingPage() {
       updatePersonal({
         birthDate: birthDate || undefined,
         age: undefined, // 새 필드(birthDate)로 대체. 잔존 v2 데이터 정리.
+        gender: gender || undefined,
         region: region || undefined,
         subRegion: subRegion || undefined,
         incomeLevel: incomeLevel || undefined,
@@ -251,6 +254,40 @@ export default function OnboardingPage() {
                 />
                 <p className="mt-1 text-xs text-gray-400">
                   복지 정책의 연령 요건과 정확하게 매칭하기 위해 사용됩니다.
+                </p>
+              </div>
+              <div>
+                <Label>성별</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setGender((g) => (g === "male" ? "" : "male"))
+                    }
+                    className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+                      gender === "male"
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    남성
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setGender((g) => (g === "female" ? "" : "female"))
+                    }
+                    className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+                      gender === "female"
+                        ? "border-pink-500 bg-pink-50 text-pink-700"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    여성
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  임산부/여성 전용 복지, 군 관련 혜택 등을 정확히 매칭하기 위해 사용됩니다. 선택 안 해도 됨.
                 </p>
               </div>
               <div>

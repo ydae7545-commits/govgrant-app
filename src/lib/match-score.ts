@@ -57,6 +57,60 @@ function scoreConsortium(
   return { score: matched ? 10 : 0, matched };
 }
 
+/**
+ * Phase 6.6: 복지 태그 기반 "해당 없음" 제외 필터.
+ *
+ * 복지 공고 (category === "복지")는 bokjiro API의 trgterIndvdlArray /
+ * intrsThemaArray 를 tags 에 담고 있다. 사용자 프로필과 명백히 상충하는
+ * 태그가 있으면 즉시 0점 처리해서 검색/추천에서 완전히 배제한다.
+ *
+ * 배제 규칙 (명시적 성별/가족/연령 태그가 있을 때만 적용 — 없으면 통과):
+ *   - "임산부"/"여성": male 사용자 배제
+ *   - "다문화가족"/"한부모": 그 가구 타입이 아닌 사람 배제하진 않음 (조건 완화)
+ *   - "노인"/"어르신": 만 60세 미만 배제
+ *   - "청소년": 만 30세 초과 배제
+ *   - "아동": 만 19세 초과 배제 (아동 본인 지원이 아닌 부모 지원은 hasChildren으로 보정)
+ *
+ * gender / age 를 설정하지 않은 사용자에게는 배제 적용 안 함 — 불확실한
+ * 추론으로 과도하게 필터하는 것보단 여전히 보이게 두는 쪽이 낫다.
+ */
+function isExcludedByTargeting(
+  grant: Grant,
+  personal: PersonalProfile,
+  userAge: number | null
+): boolean {
+  // 복지 카테고리가 아니면 배제 규칙 적용 안 함
+  if (grant.category !== "복지") return false;
+
+  const tagsLower = grant.tags.map((t) => t.toLowerCase());
+  const has = (kw: string) => tagsLower.some((t) => t.includes(kw));
+
+  // 성별 제한
+  if (personal.gender === "male") {
+    if (has("임산부") || has("산모") || has("여성")) return true;
+  }
+  if (personal.gender === "female") {
+    // 드물지만 "남성" 전용 공고 (군인 등) 배제
+    if (has("남성") && !has("여성")) return true;
+  }
+
+  // 연령대 제한 (userAge 있을 때만)
+  if (userAge != null) {
+    if ((has("노인") || has("어르신")) && userAge < 55) return true;
+    if (has("청소년") && userAge > 30) return true;
+    if (has("영유아") && userAge > 6 && !personal.hasChildren) return true;
+    if (has("아동") && userAge > 19 && !personal.hasChildren) return true;
+  }
+
+  // 자녀 없는 사람에게 부모 전용 복지 배제
+  if (!personal.hasChildren) {
+    if (has("한부모") && personal.householdType !== "1인") return true;
+    if (has("다자녀")) return true;
+  }
+
+  return false;
+}
+
 function scorePersonal(
   grant: Grant,
   personal: PersonalProfile,
@@ -64,6 +118,10 @@ function scorePersonal(
 ): number {
   // 개인 복지 컨텍스트에서는 individual 대상이 아닌 과제는 즉시 0점
   if (!grant.targetTypes.includes("individual")) return 0;
+
+  // Phase 6.6: 복지 태그 기반 명시적 배제 (성별/연령/가족)
+  const userAge = calculateAge(personal.birthDate, personal.age) ?? null;
+  if (isExcludedByTargeting(grant, personal, userAge)) return 0;
 
   let score = 30; // individual 매칭 기본점
 
@@ -76,8 +134,7 @@ function scorePersonal(
   // +10 태그 겹침
   if (tagOverlap(grant.tags, interests)) score += 10;
 
-  // +10 나이 범위 일치 (생년월일에서 만 나이 계산, 없으면 v2 fallback age 사용)
-  const userAge = calculateAge(personal.birthDate, personal.age);
+  // +10 나이 범위 일치 (userAge 는 위에서 이미 계산함)
   if (userAge != null) {
     const { ageMin, ageMax } = grant.eligibility;
     if (ageMin != null && ageMax != null) {

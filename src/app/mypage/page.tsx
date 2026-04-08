@@ -171,6 +171,14 @@ export default function MyPage() {
                     }
                   />
                 )}
+                {account.personal.gender && (
+                  <InfoRow
+                    label="성별"
+                    value={
+                      account.personal.gender === "male" ? "남성" : "여성"
+                    }
+                  />
+                )}
                 {account.personal.region && (
                   <InfoRow label="거주 지역" value={account.personal.region} />
                 )}
