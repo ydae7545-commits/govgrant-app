@@ -23,16 +23,20 @@ import type { Grant, GrantCategory, UserType } from "@/types/grant";
 const ENDPOINT =
   "https://apis.data.go.kr/1721000/msitannouncementinfo/businessAnnouncMentList";
 
-/** Shape of a single row in the API response, after JSON normalization. */
+/**
+ * Shape of a single <item> in the actual API response (verified against
+ * real preview output on 2026-04-08). The data.go.kr documentation field
+ * names (bsnsAncmNm 등) DO NOT match what the API actually returns —
+ * trust this interface, not the docs.
+ */
 export interface MsitRow {
-  bsnsAncmId?: string | number;
-  bsnsAncmNm?: string;        // 공고명
-  bsnsAncmUrl?: string;       // 상세 URL
-  drtDeptNm?: string;         // 담당 부서
-  cntcManNm?: string;         // 담당자
-  cntcManTelno?: string;      // 담당자 연락처
-  rgsDt?: string;             // 등록일 yyyy-mm-dd
-  // 첨부파일 관련 (사용 안 함, raw로만 보관)
+  subject?: string;        // 공고명
+  viewUrl?: string;        // 상세 URL (msit.go.kr/bbs/view.do?...&nttSeqNo=N)
+  deptName?: string;       // 담당 부서
+  managerName?: string;    // 담당자
+  managerTel?: string;     // 담당자 연락처
+  pressDt?: string;        // 등록일 yyyy-mm-dd
+  files?: unknown;         // 첨부파일 (raw에 그대로 보관)
   [k: string]: unknown;
 }
 
@@ -79,7 +83,11 @@ export async function fetchMsitPage(
   // accepted in practice for many endpoints, but we use the documented form
   // to match the spec exactly.
   const url = new URL(ENDPOINT);
-  url.searchParams.set("ServiceKey", serviceKey);
+  // The data.go.kr endpoint accepts the lowercase form (`serviceKey`) used
+  // by their own preview UI. The spec table on the activation page shows
+  // `ServiceKey` (capital S/K) but using that returns 400 Request Blocked
+  // for THIS endpoint — so we follow the working preview convention.
+  url.searchParams.set("serviceKey", serviceKey);
   url.searchParams.set("pageNo", String(pageNo));
   url.searchParams.set("numOfRows", String(numOfRows));
   url.searchParams.set("returnType", returnType);
@@ -87,7 +95,13 @@ export async function fetchMsitPage(
   const res = await fetch(url.toString(), {
     // The API only refreshes once a day, so a 6-hour edge cache is safe.
     next: { revalidate: 60 * 60 * 6 },
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      // data.go.kr blocks requests without a browser-like User-Agent
+      // (returns "400 Request Blocked"). Confirmed empirically 2026-04-08.
+      "User-Agent":
+        "Mozilla/5.0 (compatible; govgrant-app/1.0; +https://govgrant-app.vercel.app)",
+    },
   });
 
   if (!res.ok) {
@@ -116,28 +130,77 @@ export async function fetchMsitPage(
   return extractPage(json, pageNo, numOfRows);
 }
 
+/**
+ * Parse the actual MSIT JSON envelope, which is unusual:
+ *
+ * {
+ *   "response": [
+ *     { "header": { "resultCode": "00", "resultMsg": "NORMAL_CODE" } },
+ *     { "body":   { "items": [{ "item": {...} }, ...], "totalCount": 4008,
+ *                   "pageNo": "1", "numOfRows": 10 } }
+ *   ]
+ * }
+ *
+ * Note that `response` is an ARRAY of single-key objects, not the nested
+ * { header, body } object that most data.go.kr APIs use. And `items` is
+ * an array of `{ item: {...} }` wrappers, so we have to unwrap each one.
+ */
 function extractPage(
   json: unknown,
   pageNo: number,
   numOfRows: number
 ): MsitPage {
   const j = json as Record<string, unknown>;
-  // Common envelope: { response: { header, body: { items, totalCount, ... } } }
-  const response = (j.response ?? j) as Record<string, unknown> | undefined;
-  const body = (response?.body ?? response) as Record<string, unknown> | undefined;
+  const response = j.response;
+
+  let body: Record<string, unknown> | undefined;
+  let header: Record<string, unknown> | undefined;
+
+  if (Array.isArray(response)) {
+    for (const part of response as Array<Record<string, unknown>>) {
+      if (part?.body && typeof part.body === "object") {
+        body = part.body as Record<string, unknown>;
+      }
+      if (part?.header && typeof part.header === "object") {
+        header = part.header as Record<string, unknown>;
+      }
+    }
+  } else if (response && typeof response === "object") {
+    // Defensive: handle the more common nested form too.
+    body = (response as Record<string, unknown>).body as Record<string, unknown> | undefined;
+    header = (response as Record<string, unknown>).header as Record<string, unknown> | undefined;
+  }
+
+  // Surface API-level errors as thrown errors so the caller can fail loudly.
+  if (header && header.resultCode && header.resultCode !== "00") {
+    throw new Error(
+      `MSIT API result error ${header.resultCode}: ${header.resultMsg ?? "unknown"}`
+    );
+  }
+
   if (!body) {
     return { rows: [], totalCount: 0, pageNo, numOfRows };
   }
 
-  let items = body.items as unknown;
-  // items can be: { item: [...] } | { item: {...} } | [...] | undefined
-  if (items && typeof items === "object" && !Array.isArray(items)) {
-    items = (items as Record<string, unknown>).item;
+  let itemsRaw = body.items as unknown;
+  // items can be: [{ item: {...} }, ...] | { item: [...] } | { item: {...} }
+  if (itemsRaw && typeof itemsRaw === "object" && !Array.isArray(itemsRaw)) {
+    itemsRaw = (itemsRaw as Record<string, unknown>).item;
   }
-  if (items && !Array.isArray(items) && typeof items === "object") {
-    items = [items];
-  }
-  const rows: MsitRow[] = Array.isArray(items) ? (items as MsitRow[]) : [];
+  const itemsArr = Array.isArray(itemsRaw)
+    ? itemsRaw
+    : itemsRaw
+    ? [itemsRaw]
+    : [];
+
+  // Each entry might be { item: {...} } (the actual MSIT shape) or already
+  // a flat row. Unwrap defensively.
+  const rows: MsitRow[] = itemsArr.map((entry) => {
+    if (entry && typeof entry === "object" && "item" in entry) {
+      return (entry as { item: MsitRow }).item;
+    }
+    return entry as MsitRow;
+  });
 
   return {
     rows,
@@ -198,16 +261,23 @@ function extractDateRange(title: string): { start?: string; end?: string } {
  * (camelCase vs snake_case) — the DB row is what `sync-grants` writes.
  */
 export function normalizeMsitRow(row: MsitRow): GrantDbRow | null {
-  const title = (row.bsnsAncmNm ?? "").toString().trim();
+  const title = (row.subject ?? "").toString().trim();
   if (!title) return null;
 
-  const externalId = String(
-    row.bsnsAncmId ?? `msit-${hashString(title + (row.rgsDt ?? ""))}`
-  );
+  const url = (row.viewUrl ?? "").toString().trim() || null;
+  const orgName = (row.deptName ?? "과학기술정보통신부").toString().trim();
+  const registeredAt = (row.pressDt ?? "").toString().slice(0, 10) || null;
 
-  const url = (row.bsnsAncmUrl ?? "").toString().trim() || null;
-  const orgName = (row.drtDeptNm ?? "과학기술정보통신부").toString().trim();
-  const registeredAt = (row.rgsDt ?? "").toString().slice(0, 10) || null;
+  // Stable external_id: prefer the nttSeqNo embedded in the viewUrl
+  // (e.g. ?...&nttSeqNo=3186627), otherwise hash title + pressDt as a
+  // fallback so re-runs upsert idempotently.
+  const externalId = (() => {
+    if (url) {
+      const m = url.match(/[?&]nttSeqNo=(\d+)/);
+      if (m) return m[1];
+    }
+    return `h-${hashString(title + (registeredAt ?? ""))}`;
+  })();
 
   const dates = extractDateRange(title);
   const category = inferCategory(title);
