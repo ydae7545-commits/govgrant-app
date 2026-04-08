@@ -1,7 +1,7 @@
 # govgrant-app 진행 상황
 
-> 마지막 업데이트: 2026-04-07
-> 마지막 commit: `da85228` (fix docx 한글 파일명)
+> 마지막 업데이트: 2026-04-08
+> 마지막 commit: `20e1ab8` (Phase 6 MSIT 어댑터 + 페이지 break 수정)
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md) 참조.
 
@@ -72,6 +72,33 @@
 **검증 (사용자 직접)**
 - ✅ 로그인 → 과제 선택 → 초안 생성 → 7섹션 스트리밍 (Claude Sonnet 4.5)
 - ✅ 한글 파일명 그대로 .docx / .md 다운로드 → 한글/워드 정상 열람
+
+### Production 배포 (2026-04-08)
+- ✅ Vercel prod 배포 (govgrant-app.vercel.app)
+- ✅ prod Supabase (govgrant-prod, lbmosmubjuzxcdqdbglv) 마이그레이션 적용
+- ✅ Google OAuth + Kakao prod 활성화
+- ✅ Site URL 수정 (localhost → vercel.app)
+- ✅ 사용자 직접 로그인 성공 확인
+
+### Phase 6 MVP (2026-04-08, commits 8fffb82 → ec9bb63 → 20e1ab8)
+- ✅ MSIT 사업공고 OpenAPI 어댑터 (`src/lib/data-sources/msit.ts`)
+  - 실제 응답 envelope (response 배열, items[].item 이중 wrap) 처리
+  - User-Agent 헤더 필수 (없으면 400 차단)
+  - viewUrl의 nttSeqNo로 안정적 external_id 생성
+- ✅ Grants repository (`src/lib/grants/repository.ts`)
+  - `NEXT_PUBLIC_USE_REAL_GRANTS` 플래그로 mock ↔ Supabase 자동 전환
+  - 빈 테이블이면 mock 폴백 (안전망)
+- ✅ Sync API (`/api/admin/sync-grants`)
+  - Bearer 토큰 인증 (`ADMIN_SYNC_TOKEN`)
+  - dryRun 모드 + maxPages + console 구조화 로그
+- ✅ `/api/grants` 라우트 → repository 사용
+- ✅ prod에 100건 적재 완료 (총 4,008건 중)
+- ✅ "AI" 검색 → prod에서 21개 정부 R&D 공고 매칭 (검증됨)
+
+**알려진 한계** (Phase 6.5에서 보강):
+- MSIT API가 numOfRows 무시하고 항상 10건씩 → 401페이지 필요
+- 신청 마감일/금액/자격요건 미수집 → 카드에 D-NaN, "무료/현물 지원" 표시
+- 첨부 .hwp/.zip 본문 LLM 파싱으로 보강 가능
 
 ---
 
