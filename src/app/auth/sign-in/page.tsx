@@ -44,14 +44,14 @@ function SignInContent() {
         nextPath
       )}`;
       console.log("[sign-in] redirectTo", redirectTo);
-      // Kakao: 동의항목으로 활성화한 scope만 명시. 활성화 안 한 scope을
-      // 요청하면 카카오가 KOE205로 거절한다. profile_image / account_email은
-      // 비즈 인증이 필요하거나 선택사항이라 기본 활성화하지 않음.
+      // Supabase Kakao default scope = "account_email profile_image profile_nickname".
+      // 클라이언트 scopes 옵션은 default를 대체하지 않고 추가만 되므로
+      // (URL에 profile_nickname 중복이 생김) 명시하지 않는다. 대신 카카오
+      // 콘솔의 동의항목에서 세 항목 모두 활성화 (선택 동의)되어 있어야 한다.
       const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
-          scopes: provider === "kakao" ? "profile_nickname" : undefined,
         },
       });
       console.log("[sign-in] result", { data, authError });
