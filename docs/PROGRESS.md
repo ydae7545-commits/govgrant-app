@@ -1,8 +1,9 @@
 # govgrant-app 진행 상황
 
-> 마지막 업데이트: 2026-04-08 (밤, Phase 5 opt-in 완료 후)
-> 마지막 commit: `611fe7e` (Phase 5 이메일 알림 명시적 opt-in, auto-deploy)
+> 마지막 업데이트: 2026-04-09 (새벽, **소프트 런칭 가능 상태 도달**)
+> 마지막 commit: 검색엔진 verification + 8번 외부 작업 완료 시점
 > Live: <https://govgrant-app.vercel.app>
+> Status: **🟢 운영 시작 가능 상태** (카카오 비즈 인증 + 도메인 + 법무 검토만 남음)
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md), 집에서 이어 작업 절차는 [`docs/HANDOFF.md`](./HANDOFF.md) 참조.
 
@@ -211,7 +212,53 @@ ec9bb63 fix(phase-6): MSIT 실제 응답 형태 반영
 
 ---
 
-## 🚧 남은 과제 (코드 검증 후 재작성, 2026-04-08 밤)
+## 🎉 2026-04-08 ~ 04-09 새벽 세션 — 26개 작업 완료
+
+이 세션 한 번에 코드 작업 20개 + 외부 설정 6개 = 26개를 끝냈다. 결과적으로
+**소프트 런칭 가능한 상태**에 도달했다.
+
+### 📦 코드 작업 (20개) — 모두 prod 배포 완료
+1. 카카오 OAuth 외부 설정 + 비즈 인증 신청
+2. 검색 UI 복지 배지 + 시도 정렬 (이미 회사에서 push 되어 있던 것 재확인)
+3. Phase 5 이메일 알림 명시적 opt-in (DB + UI + cron)
+4. PROGRESS.md 코드 검증 후 재작성 (auto-deploy hook 발견)
+5. 매칭 로직 — 소득 기반 필터
+6. 에러/404/로딩 UX 풀스택 (`error.tsx`, `not-found.tsx`, `global-error.tsx`,
+   `loading.tsx`, `search/loading.tsx`, `grants/[id]/loading.tsx`)
+7. 모바일 반응형 fix (header bell, portfolio detail wrap, layout safe area)
+8. a11y 빠른 스윕 (icon-only buttons, X SVG → button)
+9. Cron sub-step 실패 로깅 정확화 (sync/enrich/embed/digest 4개 route)
+10. SEO + 공유 미리보기 콤보 (`robots.ts`, `sitemap.ts`, `opengraph-image.tsx`,
+    layout metadata 강화, 4개 segment metadata, dynamic generateMetadata)
+11. Phase 7 B2B 포트폴리오 초대 시스템 (DB + 3개 API + UI + 모달)
+12. `/terms` `/privacy` 페이지
+13. Label htmlFor 21개 a11y
+14. Phase 5 알림 빈도 다중화 (D-7/3/1)
+15. 사용자 약관 동의 추적 (DB + API + audit log)
+16. API rate limiting (in-memory token bucket)
+17. Vercel Analytics 통합
+18. Sentry SDK + instrumentation
+19. 약관 강제 동의 화면 + callback 검사 + users 캐시 컬럼
+20. 검색엔진 verification (Google + Naver)
+
+### 🔧 외부 설정 (6개) — 모두 완료
+21. SQL 마이그레이션 dev/prod 적용 (Phase 5 / Phase 7 / 약관 / users 캐시)
+22. Anthropic API 키 rotation
+23. Vercel Analytics 활성화
+24. Sentry 계정 생성 + DSN 발급 + Vercel env 추가 + 검증 (sample event 잡힘)
+25. Google Search Console 사이트 등록 + verify + sitemap 제출
+26. Naver Search Advisor 사이트 등록 + verify + sitemap 제출
+
+### 신규 마이그레이션 파일 5개
+- `20260505000000_phase5_email_opt_in.sql`
+- `20260510000000_phase7_invitations.sql`
+- `20260512000000_user_terms_consent.sql`
+- `20260513000000_users_consent_cache.sql`
+- (Phase 1/4/6.5 는 이전 세션에서 적용 완료)
+
+---
+
+## 🚧 남은 과제 (2026-04-09 새벽 — 26개 작업 완료 후)
 
 > 이 섹션은 028337f → 611fe7e 사이에 auto-deploy 된 6개 commit 까지 모두
 > 반영하여 코드 grep 으로 직접 검증한 결과이다. 이전 PROGRESS.md 에 "남은
@@ -232,10 +279,10 @@ ec9bb63 fix(phase-6): MSIT 실제 응답 형태 반영
 
 | # | 작업 | 어디부터 |
 |---|---|---|
-| 1 | **Phase 5 — 알림 빈도 다중화 (D-7/3/1)** | DB 컬럼 `email_deadline_days int[] default '{7,3,1}'` 이미 있음. 사용 코드 0건. send-digest 필터 + mypage UI 두 곳 확장. |
-| 2 | **Phase 7 — B2B 포트폴리오 초대 시스템** | DB `org_memberships` 스키마는 Phase 1 에 forward-prep 되어 있음 (owner 자동 추가만 동작). 초대/수락 API + UI 신규. |
-| 3 | **매칭 로직 — 소득 수준 기반 필터** | `PersonalProfile.incomeLevel` 필드는 있지만 `match-score.ts` 에서 사용 0회. 복지 태그 "저소득"/"기초생활" + incomeLevel 조합 필터 추가. |
-| 4 | **첨부 batch enrichment 실행** | 코드 `/api/admin/enrich-attachments` 완성. prod MSS/MSIT 의 `enrichment_status='enriched'` 100건 실행. ~$5–12 Anthropic 비용. |
+| 1 | **첨부 batch enrichment 실행** | 코드 `/api/admin/enrich-attachments` 완성. prod MSS/MSIT 의 `enrichment_status='enriched'` 100건 실행. ~$5–12 Anthropic 비용. |
+| 2 | **약관 동의 모달 UI 통합** | DB + API + 강제 redirect 까지 완료 (`/auth/consent`). 다만 페이지 자체는 callback 에서만 진입. mypage 에 "동의 이력 보기" 같은 follow-up UI 가능. |
+| 3 | **3개 그룹 라벨 fieldset/legend 변환** | a11y 작업 시 발견된 follow-up. onboarding 의 성별 buttons / org-form 의 연구조직 / 보유 인증 — 그룹 input 들은 단일 input 이 아니라 fieldset/legend 가 정공법. |
+| 4 | **Bokjiro 삭제 감지** | 매일 적재가 upsert 패턴이라 카카오 측 삭제 공고가 prod 에 영구 잔존. 복지 카탈로그 정확성을 위해 매일 cron 의 마지막 단계로 sync 시점에 사라진 행을 archive 처리. |
 
 ### 🟡 외부 작업 후 시작 가능
 
@@ -245,6 +292,7 @@ ec9bb63 fix(phase-6): MSIT 실제 응답 형태 반영
 | 6 | **Phase 4 — Semantic Search** | OpenAI 충전 ($5). `/api/grants/semantic` 라우트 + 검색 페이지 "의미 검색" 토글 신규. 임베딩 인프라/cron 은 이미 있음. |
 | 7 | **Phase 4 — RAG 사업계획서** | OpenAI 충전 + 사례 데이터 수집. `pastExamples` 타입은 `proposal-user.ts:191` 에 정의되어 있지만 `generate/route.ts` 에서 채우지 않음 — 연결만 하면 됨. |
 | 8 | **도메인 등록 + Resend `from` 교체** | 도메인 구매. 스팸 스코어 개선 효과. |
+| 9 | **법무 검토 (terms / privacy)** | 변호사·법무사. 현재 페이지는 KISA·한국 SaaS 표준 가이드 기반 초안이지만 정식 시행 전 법무 검토 필수. |
 
 ### 🟢 중간 우선순위 (코드 변경, 큰 작업)
 
