@@ -83,9 +83,28 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Status filter
-  if (status && status !== "all") {
+  // Status filter.
+  //
+  // Default behavior (no status param): hide expired grants. Phase 6는
+  // 실데이터를 적재하면서 과거 공고까지 들어오기 때문에 기본값으로 이들이
+  // 섞이면 사용자가 혼란스러워한다. 마감 과제는 명시적으로 "status=all"
+  // 또는 "status=마감"을 요청할 때만 보인다.
+  //
+  // 추가로 applicationEnd가 아예 비어 있는 과제는 "기간 미확정" 취급 —
+  // BIZINFO의 "예산 소진시까지" / MSIT처럼 본문에 날짜가 없는 경우가
+  // 여기 해당. 이런 공고도 기본 표시에 포함해야 "여전히 모집 중"일 때
+  // 누락되지 않음.
+  if (status === "all") {
+    // 필터 적용 안 함 (관리자/디버깅 용)
+  } else if (status && status !== "") {
     filtered = filtered.filter((g) => getGrantStatus(g) === status);
+  } else {
+    filtered = filtered.filter((g) => {
+      // applicationEnd가 비어 있으면 기간 미확정 → 표시
+      if (!g.applicationEnd) return true;
+      // 유효한 날짜가 있고 마감이면 제외
+      return getGrantStatus(g) !== "마감";
+    });
   }
 
   // Sort
