@@ -64,15 +64,17 @@ function scoreConsortium(
  * intrsThemaArray 를 tags 에 담고 있다. 사용자 프로필과 명백히 상충하는
  * 태그가 있으면 즉시 0점 처리해서 검색/추천에서 완전히 배제한다.
  *
- * 배제 규칙 (명시적 성별/가족/연령 태그가 있을 때만 적용 — 없으면 통과):
+ * 배제 규칙 (명시적 성별/가족/연령/소득 태그가 있을 때만 적용 — 없으면 통과):
  *   - "임산부"/"여성": male 사용자 배제
  *   - "다문화가족"/"한부모": 그 가구 타입이 아닌 사람 배제하진 않음 (조건 완화)
  *   - "노인"/"어르신": 만 60세 미만 배제
  *   - "청소년": 만 30세 초과 배제
  *   - "아동": 만 19세 초과 배제 (아동 본인 지원이 아닌 부모 지원은 hasChildren으로 보정)
+ *   - "저소득"/"기초생활"/"차상위": incomeLevel === "일반" 사용자 배제
  *
- * gender / age 를 설정하지 않은 사용자에게는 배제 적용 안 함 — 불확실한
- * 추론으로 과도하게 필터하는 것보단 여전히 보이게 두는 쪽이 낫다.
+ * gender / age / incomeLevel 을 설정하지 않은 사용자에게는 해당 필터를
+ * 적용하지 않음 — 불확실한 추론으로 과도하게 필터하는 것보단 여전히
+ * 보이게 두는 쪽이 낫다.
  */
 function isExcludedByTargeting(
   grant: Grant,
@@ -106,6 +108,13 @@ function isExcludedByTargeting(
   if (!personal.hasChildren) {
     if (has("한부모") && personal.householdType !== "1인") return true;
     if (has("다자녀")) return true;
+  }
+
+  // 소득 수준 제한: 일반 소득 사용자에게 저소득 전용 복지 배제.
+  // 사용자가 명시적으로 "일반" 으로 설정한 경우에만 적용 — 미설정 사용자는
+  // 안전하게 통과시킨다 (다른 필터들과 동일 원칙).
+  if (personal.incomeLevel === "일반") {
+    if (has("저소득") || has("기초생활") || has("차상위")) return true;
   }
 
   return false;
@@ -146,7 +155,7 @@ function scorePersonal(
     }
   }
 
-  // 복지 특성 매칭 (자녀/장애/보훈)
+  // 복지 특성 매칭 (자녀/장애/보훈/소득)
   const tagsLower = grant.tags.map((t) => t.toLowerCase());
   const has = (kw: string) => tagsLower.some((t) => t.includes(kw));
   if (
@@ -160,6 +169,17 @@ function scorePersonal(
   }
   if (personal.isVeteran && (has("보훈") || has("국가유공자"))) {
     score += 8;
+  }
+  // 소득 보너스: 저소득 사용자에게 저소득 전용 복지를 우선 노출.
+  // "일반" 사용자에게 저소득 전용은 isExcludedByTargeting 에서 이미 0점
+  // 처리되므로 여기서는 보너스만 추가한다. "중위소득" 은 중간이라 보너스
+  // 절반만 (저소득 전용 공고도 일부 신청 가능하지만 우선순위는 낮음).
+  if (has("저소득") || has("기초생활") || has("차상위")) {
+    if (personal.incomeLevel === "저소득") {
+      score += 10;
+    } else if (personal.incomeLevel === "중위소득") {
+      score += 5;
+    }
   }
 
   // +15 마감 임박 보너스
