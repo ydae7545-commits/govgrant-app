@@ -1,7 +1,7 @@
 # govgrant-app 진행 상황
 
 > 마지막 업데이트: 2026-04-08
-> 마지막 commit: `8bb1e2f` (Phase 6 — bizinfo + NTS + Seoul region)
+> 마지막 commit: `7effb99` (Phase 6.5 enrichment + 마감 필터)
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md) 참조.
 
@@ -118,6 +118,55 @@
 
 **현재 prod grants**: 600건 (MSIT 100 + BIZINFO 500), 5,198건 잠재
 **현재 prod 검색**: "청년" → 24건, "AI" → 21건+ 정상 동작
+
+### Phase 6 세 번째 청크 — MSS 어댑터 (commit 0f212aa)
+
+- src/lib/data-sources/mss.ts: 중소벤처기업부 사업공고 API
+- Endpoint: https://apis.data.go.kr/1421000/mssBizService_v2/getbizList_v2
+- XML 응답을 정규식 기반으로 수동 파싱 (외부 의존성 0)
+- dryRun 검증: 3건 정상 (제조데이터, AI이어드림, CBAM)
+- prod 적재: 100건 (가용 2,052건 중)
+
+**최종 소스 현황**:
+- MSIT 100 + BIZINFO 500 + MSS 100 = prod 700건
+- 가용 총합: 7,250건
+
+### Phase 6.5 — LLM enrichment (commits c2aae9d, 7effb99)
+
+**목표**: 어댑터가 적재한 row의 HTML 본문을 LLM에 넘겨 정제된 태그/자격 요건 추출.
+
+**파일**:
+- src/lib/enrichment/extract.ts — Zod 스키마 + extractGrantMetadata()
+- src/app/api/admin/enrich-grants/route.ts — batch 처리 endpoint
+- supabase/migrations/20260420000000_phase65_enrichment.sql — 6 컬럼 + 인덱스
+
+**스키마 확장**: amount_label, enrichment_status, enriched_at, enrichment_model,
+enrichment_cost_usd + grants_enrichment_status_idx (pending only)
+
+**최종 결과**:
+- 총 processed: 420건 (BIZINFO 320 + MSS 100)
+- enriched: 316건 (BIZINFO 298 + MSS 18)
+- skipped: 104건 (본문 200자 미만)
+- failed: 0건
+- 비용: ~$2.38 (Anthropic Sonnet 4.5)
+
+**가시적 개선**:
+- raw bizinfo 태그 26개 (시도명 범벅) → 정제된 10개 (핵심 분야)
+- requirements 비어 있던 것 → "울산 소재 기업", "AI 분야 스타트업" 등 명시적 추출
+
+### Phase 6 마감 필터 (commit 7effb99)
+
+**문제**: 사용자 제보 — 2026.02.03~02.20 같이 이미 지난 공고가 검색 결과에 섞임.
+
+**수정**: /api/grants route 기본 정책 변경.
+- status 미지정 (기본): 마감 과제 제외 (applicationEnd < 오늘)
+- applicationEnd가 null인 행 (예산 소진시까지 등): 기본 포함
+- status=all: 마감 포함 전체 (관리자/디버깅)
+- status=모집중/마감임박/모집예정/마감: 기존 동작 유지
+
+**검증 (prod)**:
+- default → 662건 (활성)
+- status=all → 700건 (마감 38건 포함)
 
 ---
 
