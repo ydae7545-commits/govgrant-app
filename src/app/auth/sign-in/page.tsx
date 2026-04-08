@@ -34,26 +34,31 @@ function SignInContent() {
   const supabaseConfigured = featureFlags.useSupabase;
 
   const signInWithProvider = async (provider: "google" | "kakao") => {
+    console.log("[sign-in] click", provider);
     setLoading(provider);
     setError(null);
     try {
       const supabase = createClient();
+      console.log("[sign-in] supabase client created");
       const redirectTo = `${publicEnv.APP_URL}/auth/callback?next=${encodeURIComponent(
         nextPath
       )}`;
-      const { error: authError } = await supabase.auth.signInWithOAuth({
+      console.log("[sign-in] redirectTo", redirectTo);
+      const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
           // Supabase defaults: offline_access scope for refresh token.
         },
       });
+      console.log("[sign-in] result", { data, authError });
       if (authError) {
         setError(authError.message);
         setLoading(null);
       }
       // On success Supabase redirects the browser away; no return value.
     } catch (e) {
+      console.error("[sign-in] caught error", e);
       setError(e instanceof Error ? e.message : "로그인에 실패했어요.");
       setLoading(null);
     }
