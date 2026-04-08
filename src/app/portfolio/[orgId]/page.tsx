@@ -136,10 +136,15 @@ export default function PortfolioOrgDetailPage({
       {/* 헤더 */}
       <Card className="mb-6 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-gray-400" />
-              <h1 className="text-xl font-bold text-gray-900">{org.name}</h1>
+          <div className="min-w-0 flex-1">
+            {/* h1 + 배지 row: 좁은 모바일에서 회사명이 길거나 배지가 두 개일 때
+                wrap 되도록 flex-wrap 추가. break-keep-all 로 한국어 단어 단위
+                줄바꿈을 유지해서 글자가 어색하게 끊기지 않게 한다. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Building2 className="h-5 w-5 shrink-0 text-gray-400" />
+              <h1 className="break-keep-all text-xl font-bold text-gray-900">
+                {org.name}
+              </h1>
               {org.businessStatusCode === "01" && (
                 <Badge className="bg-green-100 text-green-700">
                   {org.businessStatusLabel ?? "계속사업자"}
@@ -152,7 +157,7 @@ export default function PortfolioOrgDetailPage({
                   </Badge>
                 )}
             </div>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 break-keep-all text-sm text-gray-600">
               {ORG_KIND_LABELS[org.kind]} · {org.region}
               {org.industry ? ` · ${org.industry}` : ""}
               {org.techField ? ` · ${org.techField}` : ""}
@@ -257,19 +262,22 @@ function MetricBox({
   urgent?: boolean;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div
         className={`flex items-center gap-1.5 text-xs ${
           urgent ? "text-red-600" : "text-gray-500"
         }`}
       >
         {icon}
-        <span>{label}</span>
+        <span className="truncate">{label}</span>
       </div>
+      {/* "조직 유형" value 가 "중소기업·스타트업" 처럼 길어질 수 있으므로
+          좁은 모바일(< 380px)에서 옆 column 침범하지 않게 truncate 한다. */}
       <div
-        className={`mt-1 text-lg font-semibold ${
+        className={`mt-1 truncate text-lg font-semibold ${
           urgent ? "text-red-600" : "text-gray-900"
         }`}
+        title={value}
       >
         {value}
       </div>

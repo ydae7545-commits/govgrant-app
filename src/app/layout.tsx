@@ -26,7 +26,13 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col font-sans" suppressHydrationWarning>
         <AuthHydrationProvider />
         <Header />
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        {/*
+          pb-20 (80px) 는 mobile-nav 의 fixed 64px + 8px safe-area 마진 +
+          가로 모드/안드로이드 시스템 바 여유. 일부 페이지(/portfolio,
+          /proposals/[id])는 별도 pb-24 를 추가로 줘서 더 안전. md 이상
+          에서는 mobile-nav 가 숨겨지므로 pb 제거.
+        */}
+        <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <MobileNav />
       </body>
     </html>

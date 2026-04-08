@@ -63,13 +63,23 @@ export function Header() {
           )}
           <Link
             href="/search"
+            aria-label="검색"
             className="rounded-full p-2 hover:bg-gray-100 md:hidden"
           >
             <Search className="h-5 w-5 text-gray-600" />
           </Link>
-          <button className="rounded-full p-2 hover:bg-gray-100">
+          {/*
+            Bell: Phase 5 이메일 opt-in 토글이 마이페이지 알림 탭에 있으므로
+            종 아이콘은 그쪽으로 연결한다. 클릭 시 라우팅이 일어나야 dead UI
+            인상을 주지 않는다. (실제 알림 inbox UI 는 Phase 5 확장에서 추가)
+          */}
+          <Link
+            href="/mypage"
+            aria-label="알림 설정"
+            className="rounded-full p-2 hover:bg-gray-100"
+          >
             <Bell className="h-5 w-5 text-gray-600" />
-          </button>
+          </Link>
         </div>
       </div>
     </header>
