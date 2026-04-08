@@ -166,8 +166,11 @@ export default function GrantDetailPage({
             <div>
               <p className="text-xs text-gray-400">접수 기간</p>
               <p className="text-sm font-medium text-gray-900">
-                {formatDate(grant.applicationStart)} ~{" "}
-                {formatDate(grant.applicationEnd)}
+                {!grant.applicationStart && !grant.applicationEnd
+                  ? "기간 미정 (상세 공고 확인)"
+                  : `${formatDate(grant.applicationStart)} ~ ${formatDate(
+                      grant.applicationEnd
+                    )}`}
               </p>
             </div>
           </div>
@@ -199,7 +202,7 @@ export default function GrantDetailPage({
       <div className="mb-6">
         <h2 className="mb-3 text-lg font-bold text-gray-900">지원 자격 요건</h2>
         <ul className="space-y-2">
-          {grant.eligibility.requirements.map((req, i) => (
+          {(grant.eligibility?.requirements ?? []).map((req, i) => (
             <li key={i} className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
               <span className="text-sm text-gray-600">{req}</span>

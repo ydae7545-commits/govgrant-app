@@ -1,16 +1,47 @@
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { ko } from "date-fns/locale";
 
-export function formatDate(dateStr: string): string {
-  return format(parseISO(dateStr), "yyyy.MM.dd", { locale: ko });
+/**
+ * Parse an ISO date string defensively. Returns `null` when the input is
+ * empty, undefined, or not a valid date.
+ *
+ * 왜 필요한가: Phase 6 실데이터 어댑터들 중 MSIT/MSS 일부 공고는
+ * application_start/end 가 비어 있다. 이전엔 `parseISO("")` 가 Invalid
+ * Date 를 반환 → `format()` 이 throw → 전체 페이지 crash ("This page
+ * couldn't load") 되는 문제가 있었다. 모든 format/daysUntil 호출은
+ * 반드시 이 헬퍼를 거쳐야 한다.
+ */
+function safeParse(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) ? d : null;
+  } catch {
+    return null;
+  }
 }
 
-export function formatDateFull(dateStr: string): string {
-  return format(parseISO(dateStr), "yyyy년 M월 d일", { locale: ko });
+export function formatDate(dateStr: string | null | undefined): string {
+  const d = safeParse(dateStr);
+  if (!d) return "기간 미정";
+  return format(d, "yyyy.MM.dd", { locale: ko });
 }
 
-export function daysUntil(dateStr: string): number {
-  return differenceInDays(parseISO(dateStr), new Date());
+export function formatDateFull(dateStr: string | null | undefined): string {
+  const d = safeParse(dateStr);
+  if (!d) return "기간 미정";
+  return format(d, "yyyy년 M월 d일", { locale: ko });
+}
+
+/**
+ * Returns `NaN` when the input is empty/invalid — callers should branch
+ * on `Number.isNaN(days)` to render "기간 미정" 라벨 대신 D-NaN이 찍히지
+ * 않도록 한다. `getDeadlineLabel` 이 이걸 담당함.
+ */
+export function daysUntil(dateStr: string | null | undefined): number {
+  const d = safeParse(dateStr);
+  if (!d) return NaN;
+  return differenceInDays(d, new Date());
 }
 
 export function formatAmount(amountManWon: number): string {
@@ -99,11 +130,13 @@ export function formatBirthDate(birthDate: string | undefined): string {
   }
 }
 
-export function getDeadlineLabel(dateStr: string): {
+export function getDeadlineLabel(dateStr: string | null | undefined): {
   text: string;
   urgent: boolean;
 } {
   const days = daysUntil(dateStr);
+  // 날짜가 없거나 파싱 불가 → "기간 미정" (D-NaN 방지)
+  if (Number.isNaN(days)) return { text: "기간 미정", urgent: false };
   if (days < 0) return { text: "마감", urgent: false };
   if (days === 0) return { text: "오늘 마감", urgent: true };
   if (days <= 3) return { text: `D-${days}`, urgent: true };
