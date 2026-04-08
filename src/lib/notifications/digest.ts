@@ -22,7 +22,7 @@ import type { PortfolioDigestOrgBlock } from "@/lib/email/templates/portfolio-di
  * 깔끔해지도록 한다. 이메일 자체를 보낼지 말지 판단은 호출자가.
  */
 
-const URGENT_DAYS_MAX = 7;
+const URGENT_DAYS_MAX_DEFAULT = 7;
 const NEW_RECENT_HOURS = 24;
 const MATCH_SCORE_THRESHOLD = 60;
 
@@ -30,6 +30,11 @@ export interface DigestBuilderArgs {
   userId: string;
   organizations: Organization[];
   interests: string[];
+  /**
+   * Phase 5 (확장): 사용자별 알림 임계값. 가장 큰 값이 마감 윈도우로
+   * 사용된다. 미설정 시 7 (기존 동작 호환).
+   */
+  deadlineDays?: number[];
 }
 
 export interface DigestBuildResult {
@@ -51,6 +56,11 @@ export async function buildPortfolioDigest(
       hasContent: false,
     };
   }
+
+  const urgentDaysMax =
+    args.deadlineDays && args.deadlineDays.length > 0
+      ? Math.max(...args.deadlineDays)
+      : URGENT_DAYS_MAX_DEFAULT;
 
   // 1. 후보 grants 가져오기
   //    마감되지 않은 + fetched_at 이 최근인 행들로 좁혀서 매칭 후보를 줄임.
@@ -113,7 +123,7 @@ export async function buildPortfolioDigest(
       .filter((s) => {
         if (!s.grant.applicationEnd) return false;
         const d = daysUntil(s.grant.applicationEnd);
-        return d >= 0 && d <= URGENT_DAYS_MAX;
+        return d >= 0 && d <= urgentDaysMax;
       })
       .sort((a, b) => {
         const da = daysUntil(a.grant.applicationEnd);

@@ -83,7 +83,7 @@ export function useAccountHydration() {
         .limit(20),
       supabase
         .from("notification_subscriptions")
-        .select("email_enabled")
+        .select("email_enabled, email_deadline_days")
         .eq("user_id", userId)
         .maybeSingle(),
     ]);
@@ -155,6 +155,8 @@ export function useAccountHydration() {
     // Phase 5: notification_subscriptions row가 없으면 (기존 가입자) false로 가정.
     // 새 가입자는 handle_new_auth_user 트리거가 default false 행을 생성한다.
     const emailNotificationsEnabled = notifRes.data?.email_enabled ?? false;
+    const emailDeadlineDays =
+      (notifRes.data?.email_deadline_days as number[] | null) ?? [7, 3, 1];
 
     const account: UserAccount = {
       id: usersRow.id as string,
@@ -169,6 +171,7 @@ export function useAccountHydration() {
         (usersRow.created_at as string | null) ?? new Date().toISOString(),
       completedOnboarding: usersRow.completed_onboarding ?? false,
       emailNotificationsEnabled,
+      emailDeadlineDays,
     };
 
     const savedGrantIds = (savedRes.data ?? []).map(

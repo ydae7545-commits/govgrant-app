@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAllGrants } from "@/lib/grants/repository";
 import { daysUntil } from "@/lib/format";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import type { Grant, GrantStatus, UserType } from "@/types/grant";
 import type { OrgKind } from "@/types/user";
 
@@ -27,6 +28,23 @@ function orgKindToUserType(kind: string): UserType | null {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 분당 60건 per IP (정상 사용자는 충분, abuse 만 차단).
+  // in-memory token bucket — instance 간 공유 안 되지만 단일 instance 기준
+  // burst 방어 충분.
+  const ip = getClientIp(request.headers) || "anon";
+  const rl = checkRateLimit({ key: `grants:${ip}`, limit: 60, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limit_exceeded", retryAfterMs: rl.retryAfterMs },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)),
+        },
+      }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
   const keyword = searchParams.get("keyword") || "";

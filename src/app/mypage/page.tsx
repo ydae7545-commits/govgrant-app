@@ -34,6 +34,7 @@ export default function MyPage() {
   const setEmailNotificationsEnabled = useUserStore(
     (s) => s.setEmailNotificationsEnabled
   );
+  const setEmailDeadlineDays = useUserStore((s) => s.setEmailDeadlineDays);
 
   useEffect(() => {
     setMounted(true);
@@ -239,17 +240,58 @@ export default function MyPage() {
                   onChange={setEmailNotificationsEnabled}
                 />
               </div>
+
+              {/* Phase 5 (확장): 임계값 다중 선택. 마스터 토글이 ON 일 때만 활성. */}
+              <fieldset
+                disabled={!account.emailNotificationsEnabled}
+                className="mt-5 space-y-3 rounded-lg border border-gray-200 p-4 disabled:opacity-50"
+              >
+                <legend className="px-1 text-xs font-semibold text-gray-700">
+                  알림 받을 임계값
+                </legend>
+                <p className="text-xs text-gray-500">
+                  체크한 임계값 중 가장 큰 값이 적용됩니다. 예: 7일 + 1일을
+                  선택하면 마감 7일 이내 공고가 모두 표시됩니다.
+                </p>
+                {[
+                  { value: 7, label: "마감 7일 전부터 (여유 있게)" },
+                  { value: 3, label: "마감 3일 전부터" },
+                  { value: 1, label: "마감 1일 전 (긴급)" },
+                ].map((opt) => {
+                  const checked = account.emailDeadlineDays.includes(opt.value);
+                  return (
+                    <label
+                      key={opt.value}
+                      className="flex cursor-pointer items-center gap-3"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...account.emailDeadlineDays, opt.value].sort(
+                                (a, b) => b - a
+                              )
+                            : account.emailDeadlineDays.filter(
+                                (d) => d !== opt.value
+                              );
+                          setEmailDeadlineDays(next);
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+
               <div className="mt-6 space-y-1 rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
                 <p>
                   • 한국 개인정보보호법에 따라 <strong>기본 OFF</strong> 입니다.
                   명시적으로 동의해주셔야 발송됩니다.
                 </p>
                 <p>
-                  • 발송 빈도(D-7/3/1) 세부 설정은 곧 추가될 예정입니다 — 현재는
-                  매일 1회 발송.
-                </p>
-                <p>
-                  • 언제든 이 토글을 OFF로 돌리면 다음 발송부터 즉시 중단됩니다.
+                  • 언제든 위 토글을 OFF 로 돌리면 다음 발송부터 즉시 중단됩니다.
                 </p>
               </div>
             </Card>

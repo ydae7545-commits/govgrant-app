@@ -111,6 +111,7 @@ async function loadAccount(
     completedOnboarding: (usersRow.completed_onboarding as boolean) ?? false,
     // 사업계획서 생성 컨텍스트에서는 사용 안 함. 안전 기본값.
     emailNotificationsEnabled: false,
+    emailDeadlineDays: [7, 3, 1],
   };
 
   return { account, personalProfile };

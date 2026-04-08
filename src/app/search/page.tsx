@@ -241,9 +241,9 @@ function SearchContent() {
   const FilterPanel = () => (
     <div className="space-y-4">
       <div>
-        <Label>지역</Label>
+        <Label htmlFor="filter-region">지역</Label>
         <Select value={region} onValueChange={setRegion}>
-          <SelectTrigger>
+          <SelectTrigger id="filter-region">
             <SelectValue placeholder="전체" />
           </SelectTrigger>
           <SelectContent>
@@ -257,9 +257,9 @@ function SearchContent() {
         </Select>
       </div>
       <div>
-        <Label>모집 상태</Label>
+        <Label htmlFor="filter-status">모집 상태</Label>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger>
+          <SelectTrigger id="filter-status">
             <SelectValue placeholder="전체" />
           </SelectTrigger>
           <SelectContent>

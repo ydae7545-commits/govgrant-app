@@ -219,17 +219,18 @@ export function OrgFormDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
-            <Label>기관명 *</Label>
+            <Label htmlFor="org-name">기관명 *</Label>
             <Input
+              id="org-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="예: 홍길동 제작소"
             />
           </div>
           <div>
-            <Label>유형 *</Label>
+            <Label htmlFor="org-kind">유형 *</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as OrgKind)}>
-              <SelectTrigger>
+              <SelectTrigger id="org-kind">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -242,9 +243,9 @@ export function OrgFormDialog({
             </Select>
           </div>
           <div>
-            <Label>지역</Label>
+            <Label htmlFor="org-region">지역</Label>
             <Select value={region} onValueChange={setRegion}>
-              <SelectTrigger>
+              <SelectTrigger id="org-region">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -260,7 +261,7 @@ export function OrgFormDialog({
           {isSme && (
             <>
               <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
-                <Label className="text-sm font-medium">
+                <Label htmlFor="org-businessNo" className="text-sm font-medium">
                   사업자등록번호
                   <span className="ml-1.5 text-xs font-normal text-gray-500">
                     국세청 검증
@@ -268,6 +269,7 @@ export function OrgFormDialog({
                 </Label>
                 <div className="flex gap-2">
                   <Input
+                    id="org-businessNo"
                     value={businessNoInput}
                     onChange={(e) => {
                       setBusinessNoInput(e.target.value);
@@ -330,8 +332,9 @@ export function OrgFormDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>업력 (년)</Label>
+                  <Label htmlFor="org-businessAge">업력 (년)</Label>
                   <Input
+                    id="org-businessAge"
                     type="number"
                     value={businessAge}
                     onChange={(e) => setBusinessAge(e.target.value)}
@@ -339,8 +342,9 @@ export function OrgFormDialog({
                   />
                 </div>
                 <div>
-                  <Label>종업원 수</Label>
+                  <Label htmlFor="org-employeeCount">종업원 수</Label>
                   <Input
+                    id="org-employeeCount"
                     type="number"
                     value={employeeCount}
                     onChange={(e) => setEmployeeCount(e.target.value)}
@@ -349,8 +353,9 @@ export function OrgFormDialog({
                 </div>
               </div>
               <div>
-                <Label>매출액 (억 원)</Label>
+                <Label htmlFor="org-revenue">매출액 (억 원)</Label>
                 <Input
+                  id="org-revenue"
                   type="number"
                   value={revenue}
                   onChange={(e) => setRevenue(e.target.value)}
@@ -358,9 +363,9 @@ export function OrgFormDialog({
                 />
               </div>
               <div>
-                <Label>업종</Label>
+                <Label htmlFor="org-industry">업종</Label>
                 <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger>
+                  <SelectTrigger id="org-industry">
                     <SelectValue placeholder="업종 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -373,8 +378,9 @@ export function OrgFormDialog({
                 </Select>
               </div>
               <div>
-                <Label>기술 분야</Label>
+                <Label htmlFor="org-techField">기술 분야</Label>
                 <Input
+                  id="org-techField"
                   value={techField}
                   onChange={(e) => setTechField(e.target.value)}
                   placeholder="예: AI, 바이오, IoT"
@@ -444,9 +450,9 @@ export function OrgFormDialog({
           {isResearch && (
             <>
               <div>
-                <Label>연구 분야</Label>
+                <Label htmlFor="org-researchField">연구 분야</Label>
                 <Select value={researchField} onValueChange={setResearchField}>
-                  <SelectTrigger>
+                  <SelectTrigger id="org-researchField">
                     <SelectValue placeholder="연구 분야 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -459,8 +465,9 @@ export function OrgFormDialog({
                 </Select>
               </div>
               <div>
-                <Label>경력 (년)</Label>
+                <Label htmlFor="org-careerYears">경력 (년)</Label>
                 <Input
+                  id="org-careerYears"
                   type="number"
                   value={careerYears}
                   onChange={(e) => setCareerYears(e.target.value)}
@@ -471,8 +478,9 @@ export function OrgFormDialog({
           )}
 
           <div>
-            <Label>메모 (선택)</Label>
+            <Label htmlFor="org-notes">메모 (선택)</Label>
             <Input
+              id="org-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="내부용 메모"

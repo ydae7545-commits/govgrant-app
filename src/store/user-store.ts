@@ -23,6 +23,7 @@ import {
   syncUnsaveGrant,
   syncAddRecentViewed,
   syncUpdateEmailNotifications,
+  syncUpdateEmailDeadlineDays,
 } from "@/store/supabase-sync";
 
 interface UserState {
@@ -42,6 +43,7 @@ interface UserState {
 
   // Notification preferences (Phase 5)
   setEmailNotificationsEnabled: (enabled: boolean) => void;
+  setEmailDeadlineDays: (days: number[]) => void;
 
   // Organizations
   addOrganization: (org: Omit<Organization, "id">) => string;
@@ -111,6 +113,7 @@ export const useUserStore = create<UserState>()(
           createdAt: new Date().toISOString(),
           completedOnboarding: false,
           emailNotificationsEnabled: false, // Phase 5 — explicit opt-in
+          emailDeadlineDays: [7, 3, 1],
         };
         set({ account: newAccount });
       },
@@ -156,6 +159,18 @@ export const useUserStore = create<UserState>()(
           syncUpdateEmailNotifications(state.account.id, enabled);
           return {
             account: { ...state.account, emailNotificationsEnabled: enabled },
+          };
+        }),
+
+      // Phase 5 (확장): 알림 임계값 [7,3,1] 다중 선택. 빈 배열 입력 시
+      // 자동으로 [7] 로 보정 (적어도 한 임계값은 있어야 의미 있음).
+      setEmailDeadlineDays: (days) =>
+        set((state) => {
+          if (!state.account) return state;
+          const normalized = days.length === 0 ? [7] : days;
+          syncUpdateEmailDeadlineDays(state.account.id, normalized);
+          return {
+            account: { ...state.account, emailDeadlineDays: normalized },
           };
         }),
 
@@ -298,13 +313,29 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: "govgrant-user",
-      version: 3,
-      // v1 (구 profile 필드) → v2 (account) → v3 (emailNotificationsEnabled) 마이그레이션
+      version: 4,
+      // v1 → v2 (account) → v3 (emailNotificationsEnabled) → v4 (emailDeadlineDays)
       migrate: (persisted: unknown, version: number) => {
-        // v3 이상이면 그대로 사용
-        if (version >= 3) return persisted as UserState;
+        // v4 이상이면 그대로 사용
+        if (version >= 4) return persisted as UserState;
 
-        // v2 → v3: 기존 account 에 emailNotificationsEnabled 주입
+        // v3 → v4: 기존 account 에 emailDeadlineDays 주입
+        if (version === 3) {
+          const current = persisted as UserState;
+          if (current.account) {
+            return {
+              ...current,
+              account: {
+                ...current.account,
+                emailDeadlineDays:
+                  current.account.emailDeadlineDays ?? [7, 3, 1],
+              },
+            } as UserState;
+          }
+          return current;
+        }
+
+        // v2 → v4: 기존 account 에 emailNotificationsEnabled + emailDeadlineDays 둘 다 주입
         if (version === 2) {
           const current = persisted as UserState;
           if (current.account) {
@@ -314,6 +345,8 @@ export const useUserStore = create<UserState>()(
                 ...current.account,
                 emailNotificationsEnabled:
                   current.account.emailNotificationsEnabled ?? false,
+                emailDeadlineDays:
+                  current.account.emailDeadlineDays ?? [7, 3, 1],
               },
             } as UserState;
           }
@@ -393,6 +426,7 @@ export const useUserStore = create<UserState>()(
           createdAt: new Date().toISOString(),
           completedOnboarding: !!p.completedOnboarding,
           emailNotificationsEnabled: false, // Phase 5 — explicit opt-in
+          emailDeadlineDays: [7, 3, 1],
         };
         return {
           account,

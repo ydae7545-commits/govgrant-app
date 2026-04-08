@@ -221,8 +221,9 @@ export default function OnboardingPage() {
             </p>
             <div className="space-y-4">
               <div>
-                <Label>이름 또는 닉네임</Label>
+                <Label htmlFor="onboarding-name">이름 또는 닉네임</Label>
                 <Input
+                  id="onboarding-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="홍길동"
@@ -245,8 +246,9 @@ export default function OnboardingPage() {
             </p>
             <div className="space-y-4">
               <div>
-                <Label>생년월일</Label>
+                <Label htmlFor="onboarding-birthDate">생년월일</Label>
                 <Input
+                  id="onboarding-birthDate"
                   type="date"
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
@@ -291,7 +293,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
               <div>
-                <Label>거주 지역 (시·도)</Label>
+                <Label htmlFor="onboarding-region">거주 지역 (시·도)</Label>
                 <Select
                   value={region}
                   onValueChange={(v) => {
@@ -299,7 +301,7 @@ export default function OnboardingPage() {
                     setSubRegion("");
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="onboarding-region">
                     <SelectValue placeholder="시·도 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -313,9 +315,11 @@ export default function OnboardingPage() {
               </div>
               {region && SUB_REGIONS[region] && (
                 <div>
-                  <Label>세부 지역 (구·군)</Label>
+                  <Label htmlFor="onboarding-subRegion">
+                    세부 지역 (구·군)
+                  </Label>
                   <Select value={subRegion} onValueChange={setSubRegion}>
-                    <SelectTrigger>
+                    <SelectTrigger id="onboarding-subRegion">
                       <SelectValue placeholder="구·군 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -329,14 +333,14 @@ export default function OnboardingPage() {
                 </div>
               )}
               <div>
-                <Label>소득 수준</Label>
+                <Label htmlFor="onboarding-incomeLevel">소득 수준</Label>
                 <Select
                   value={incomeLevel}
                   onValueChange={(v) =>
                     setIncomeLevel(v as "저소득" | "중위소득" | "일반")
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="onboarding-incomeLevel">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -347,14 +351,14 @@ export default function OnboardingPage() {
                 </Select>
               </div>
               <div>
-                <Label>취업 상태</Label>
+                <Label htmlFor="onboarding-employmentStatus">취업 상태</Label>
                 <Select
                   value={employmentStatus}
                   onValueChange={(v) =>
                     setEmploymentStatus(v as "재직" | "구직" | "학생" | "기타")
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="onboarding-employmentStatus">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -366,14 +370,14 @@ export default function OnboardingPage() {
                 </Select>
               </div>
               <div>
-                <Label>가구 유형</Label>
+                <Label htmlFor="onboarding-householdType">가구 유형</Label>
                 <Select
                   value={householdType}
                   onValueChange={(v) =>
                     setHouseholdType(v as "1인" | "신혼" | "다자녀" | "일반")
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="onboarding-householdType">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>

@@ -75,9 +75,10 @@ export async function POST(request: NextRequest) {
   // PostgREST 의 관계 임베딩으로 한 쿼리에 처리하면 LEFT JOIN 이 기본이라
   // opt-out / 행 없음 사용자가 모두 통과되어버려 개인정보 동의 위반이 된다.
   // 그래서 먼저 opt-in user_id 목록을 따로 뽑고 그 id 만 users 에서 조회한다.
+  // Phase 5 (확장): email_deadline_days 도 함께 가져와 사용자별 임계값 적용.
   const { data: optInRows, error: optInErr } = await supabase
     .from("notification_subscriptions")
-    .select("user_id")
+    .select("user_id, email_deadline_days")
     .eq("email_enabled", true);
   if (optInErr) {
     return NextResponse.json(
@@ -86,6 +87,14 @@ export async function POST(request: NextRequest) {
     );
   }
   const optInIds = (optInRows ?? []).map((r) => r.user_id as string);
+  // userId → deadlineDays 룩업 (사용자별 알림 임계값)
+  const deadlineDaysByUser = new Map<string, number[]>();
+  for (const row of optInRows ?? []) {
+    deadlineDaysByUser.set(
+      row.user_id as string,
+      (row.email_deadline_days as number[] | null) ?? [7, 3, 1]
+    );
+  }
   if (optInIds.length === 0 && !singleUserId) {
     return NextResponse.json({
       ok: true,
@@ -181,13 +190,14 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    // Digest 빌드
+    // Digest 빌드 (사용자별 deadline_days 임계값 적용)
     let digest;
     try {
       digest = await buildPortfolioDigest({
         userId: u.id,
         organizations,
         interests,
+        deadlineDays: deadlineDaysByUser.get(u.id),
       });
     } catch (err) {
       results.push({

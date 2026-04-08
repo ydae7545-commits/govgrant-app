@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, Home, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { captureException } from "@/lib/sentry";
 
 /**
  * App-level Error Boundary (Next.js 16 file convention).
@@ -35,9 +36,11 @@ export default function GlobalRouteError({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    // Log to console so dev tools surface it. In Phase 9 we'll swap this
-    // for Sentry / PostHog capture.
-    console.error("[govgrant-app] route error:", error);
+    // Sentry 에 에러 전송 (DSN 미설정 시 console 만)
+    captureException(error, {
+      digest: error.digest,
+      route: typeof window !== "undefined" ? window.location.pathname : "unknown",
+    });
   }, [error]);
 
   return (

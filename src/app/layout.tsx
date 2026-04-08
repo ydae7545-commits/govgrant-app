@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { AuthHydrationProvider } from "@/components/auth/hydration-provider";
@@ -94,6 +95,11 @@ export default function RootLayout({
         */}
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <MobileNav />
+        {/*
+          Vercel Analytics — 무료 티어로 페이지뷰 ・ 이탈률 측정.
+          Vercel 대시보드 → Analytics 탭에서 통계 확인. 자동 활성화 (env 0).
+        */}
+        <Analytics />
       </body>
     </html>
   );

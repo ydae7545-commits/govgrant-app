@@ -112,6 +112,16 @@ export interface UserAccount {
    * 에서 forward-prep 테이블로 만들어뒀던 것을 Phase 5에서 연결).
    */
   emailNotificationsEnabled: boolean;
+  /**
+   * Phase 5 (확장): 알림 빈도 임계값. 어떤 마감 windows 에 대해 알림을
+   * 받을지 사용자가 선택. 가능한 값은 [7, 3, 1]. 사용자가 아무것도 선택
+   * 안 하면 빈 배열 → 알림 안 받음 (UI는 마스터 토글이 ON 일 때 최소 1개
+   * 선택 강제). DB 컬럼: notification_subscriptions.email_deadline_days.
+   * 빈도 의미: digest builder 가 max(value) 를 임계값으로 써서 그 day 이내
+   * 마감 grant 만 포함시킨다. 즉 [7] 은 7일 이내, [3] 은 3일 이내, [1]
+   * 은 1일 이내. 다중 선택 가능하지만 의미는 "가장 먼 임계값" 이 우선.
+   */
+  emailDeadlineDays: number[];
 }
 
 /**

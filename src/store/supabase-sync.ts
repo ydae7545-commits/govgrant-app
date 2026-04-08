@@ -328,3 +328,25 @@ export function syncUpdateEmailNotifications(
     if (error) throw error;
   });
 }
+
+/**
+ * Phase 5 (확장): 알림 임계값 배열 동기화. UI 가 setEmailDeadlineDays
+ * 호출하면 백그라운드로 notification_subscriptions.email_deadline_days
+ * upsert. send-digest cron 이 다음 발송 시 즉시 반영한다.
+ */
+export function syncUpdateEmailDeadlineDays(
+  userId: string,
+  days: number[]
+): void {
+  if (!enabled()) return;
+  detach("emailDeadlineDays", async () => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("notification_subscriptions")
+      .upsert(
+        { user_id: userId, email_deadline_days: days },
+        { onConflict: "user_id" }
+      );
+    if (error) throw error;
+  });
+}
