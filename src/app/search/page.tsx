@@ -191,10 +191,21 @@ function SearchContent() {
       ...g,
       matchScore: calculateMatchScore(g, matchContext),
     }));
-    // 점수 30 미만은 숨김, 나머지는 점수 내림차순 정렬
+    // 점수 30 미만은 숨김, 나머지는 점수 내림차순 정렬.
+    // 동점이면 같은 시도(서울특별시/경기도/...)에 속한 공고가 인접하게
+    // 정렬되도록 secondary sort 추가 — bokjiro_local 데이터가 시군구 단위로
+    // 흩어져 있어서 같은 종류 공고가 검색 결과에 띄엄띄엄 나오는 문제를
+    // 완화한다. 같은 시도 안에서는 region 알파벳 순 (= 시군구 가나다순).
     return scored
       .filter((g) => (g.matchScore ?? 0) >= 30)
-      .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+      .sort((a, b) => {
+        const diff = (b.matchScore ?? 0) - (a.matchScore ?? 0);
+        if (diff !== 0) return diff;
+        const aProvince = a.region.split(/\s+/)[0] || a.region;
+        const bProvince = b.region.split(/\s+/)[0] || b.region;
+        if (aProvince !== bProvince) return aProvince.localeCompare(bProvince);
+        return a.region.localeCompare(b.region);
+      });
   }, [grants, personalized, matchContext]);
 
   const hiddenByMatch = personalized && matchContext
