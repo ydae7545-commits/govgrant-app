@@ -10,10 +10,70 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://govgrant-app.vercel.app";
+const SITE_NAME = "지원금 찾기";
+const DEFAULT_TITLE = "지원금 찾기 — 나에게 맞는 정부지원금 추천";
+const DEFAULT_DESCRIPTION =
+  "정부지원금·국가 R&D 과제·복지 서비스를 AI가 맞춤 추천. 개인 복지부터 중소기업 R&D, 창업 지원까지 5개 정부 데이터 소스 6,000+건을 한 곳에서.";
+
+/**
+ * App-wide metadata baseline. 페이지별 metadata 가 export 되면 이 값을
+ * 부분적으로 덮어쓴다. metadataBase 가 있어야 OG/Twitter 이미지 URL 이
+ * 절대 경로로 출력되어 외부 크롤러가 정상 인식한다.
+ *
+ * 참고:
+ *   - opengraph-image.tsx 가 자동으로 og:image / twitter:image 태그를
+ *     주입하므로 여기서 별도 image 필드를 줄 필요는 없다 (Next.js가 합침).
+ *   - title.template 은 페이지 metadata 가 제목만 줘도 자동으로
+ *     "{page} | 지원금 찾기" 형태로 만들어주는 패턴.
+ */
 export const metadata: Metadata = {
-  title: "지원금 찾기 - 나에게 맞는 정부지원금 추천",
-  description:
-    "정부지원금, 국가 R&D 과제를 AI가 맞춤 추천해드립니다. 개인, 중소기업, 연구기관 모두를 위한 원스톱 플랫폼.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: [
+    "정부지원금",
+    "국가 R&D",
+    "창업지원",
+    "복지",
+    "기업마당",
+    "정책자금",
+    "사업계획서 AI",
+    "중소기업",
+    "맞춤 추천",
+  ],
+  authors: [{ name: SITE_NAME }],
+  applicationName: SITE_NAME,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({

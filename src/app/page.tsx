@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Landmark,
@@ -12,6 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { featureFlags } from "@/lib/env";
+
+// 홈은 layout.tsx 의 default title 을 그대로 쓰지만, canonical URL 만 명시.
+// 검색 결과에 다른 경로가 색인되더라도 root 가 canonical 로 고정된다.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function LandingPage() {
   // Phase 1: CTA destinations depend on whether Supabase auth is enabled.
