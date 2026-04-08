@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockGrants } from "@/data/mock-grants";
+import { listAllGrants } from "@/lib/grants/repository";
 import { daysUntil } from "@/lib/format";
 import type { Grant, GrantStatus, UserType } from "@/types/grant";
 import type { OrgKind } from "@/types/user";
@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "12");
 
-  let filtered = [...mockGrants];
+  const { grants: allGrants, meta } = await listAllGrants();
+  let filtered: Grant[] = [...allGrants];
 
   // Keyword search
   if (keyword) {
@@ -110,5 +111,11 @@ export async function GET(request: NextRequest) {
   const start = (page - 1) * limit;
   const grants = filtered.slice(start, start + limit);
 
-  return NextResponse.json({ grants, total, page, totalPages });
+  return NextResponse.json({
+    grants,
+    total,
+    page,
+    totalPages,
+    source: meta.source, // "mock" | "supabase" — debug aid for the search page
+  });
 }

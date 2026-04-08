@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockGrants } from "@/data/mock-grants";
+import { findGrantById } from "@/lib/grants/repository";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const grant = mockGrants.find((g) => g.id === id);
+  const grant = await findGrantById(id);
 
   if (!grant) {
     return NextResponse.json(

@@ -26,6 +26,10 @@ export interface ServerEnv {
   LLM_DEFAULT_MODEL_ANTHROPIC: string;
   LLM_DEFAULT_MODEL_OPENAI: string;
   LLM_MAX_DAILY_COST_USD_PER_USER: number;
+  /** data.go.kr serviceKey for Phase 6 grant ingestion (MSIT, gov24, …). Optional until Phase 6 ships. */
+  DATA_GO_KR_SERVICE_KEY: string | null;
+  /** Bearer token gate for /api/admin/sync-grants. Optional until Phase 6 ships. */
+  ADMIN_SYNC_TOKEN: string | null;
 }
 
 class MissingEnvError extends Error {
@@ -62,6 +66,11 @@ export function serverEnv(): ServerEnv {
     return Number.isFinite(n) && n > 0 ? n : 2.0;
   })();
 
+  const optionalNullable = (key: string): string | null => {
+    const v = process.env[key];
+    return v && v.length > 0 ? v : null;
+  };
+
   return {
     SUPABASE_SERVICE_ROLE_KEY: mustGet("SUPABASE_SERVICE_ROLE_KEY"),
     ANTHROPIC_API_KEY: mustGet("ANTHROPIC_API_KEY"),
@@ -77,6 +86,8 @@ export function serverEnv(): ServerEnv {
       "gpt-4o-mini"
     ),
     LLM_MAX_DAILY_COST_USD_PER_USER: parsedMaxCost,
+    DATA_GO_KR_SERVICE_KEY: optionalNullable("DATA_GO_KR_SERVICE_KEY"),
+    ADMIN_SYNC_TOKEN: optionalNullable("ADMIN_SYNC_TOKEN"),
   };
 }
 
