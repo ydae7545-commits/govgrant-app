@@ -26,8 +26,10 @@ export interface ServerEnv {
   LLM_DEFAULT_MODEL_ANTHROPIC: string;
   LLM_DEFAULT_MODEL_OPENAI: string;
   LLM_MAX_DAILY_COST_USD_PER_USER: number;
-  /** data.go.kr serviceKey for Phase 6 grant ingestion (MSIT, gov24, …). Optional until Phase 6 ships. */
+  /** data.go.kr serviceKey for Phase 6 grant ingestion (MSIT, gov24, NTS …). Optional until Phase 6 ships. */
   DATA_GO_KR_SERVICE_KEY: string | null;
+  /** bizinfo.go.kr crtfcKey for the 기업마당 지원사업정보 API (separate from data.go.kr). */
+  BIZINFO_API_KEY: string | null;
   /** Bearer token gate for /api/admin/sync-grants. Optional until Phase 6 ships. */
   ADMIN_SYNC_TOKEN: string | null;
 }
@@ -87,6 +89,7 @@ export function serverEnv(): ServerEnv {
     ),
     LLM_MAX_DAILY_COST_USD_PER_USER: parsedMaxCost,
     DATA_GO_KR_SERVICE_KEY: optionalNullable("DATA_GO_KR_SERVICE_KEY"),
+    BIZINFO_API_KEY: optionalNullable("BIZINFO_API_KEY"),
     ADMIN_SYNC_TOKEN: optionalNullable("ADMIN_SYNC_TOKEN"),
   };
 }

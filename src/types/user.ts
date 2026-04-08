@@ -44,6 +44,26 @@ export interface Organization {
   /** 보유 인증 (이노비즈·벤처·메인비즈·ISO·특허 등) */
   certifications?: string[];
   notes?: string;
+
+  /**
+   * 사업자등록번호 + 국세청 검증 결과 (Phase 6).
+   *
+   * 사용자가 OrgFormDialog에서 사업자등록번호를 입력하고 "확인" 버튼을
+   * 누르면 /api/business/verify가 호출되고, 결과가 여기 저장된다.
+   * matchScore에서 statusCode가 "01" (계속사업자)이 아니면 R&D · 정책자금
+   * 같은 활동 사업자 대상 과제를 강하게 감점한다.
+   */
+  businessNo?: string; // 10자리 숫자, 하이픈 없음
+  /** 국세청 상태 코드: 01 계속사업자 / 02 휴업자 / 03 폐업자 */
+  businessStatusCode?: "01" | "02" | "03";
+  /** 국세청 응답 라벨 (e.g. "계속사업자") */
+  businessStatusLabel?: string;
+  /** 과세 유형 (부가세 일반과세자/간이과세자/면세사업자 등) */
+  businessTaxType?: string;
+  /** 폐업일 (해당 시) ISO yyyy-mm-dd */
+  businessClosedAt?: string;
+  /** 마지막 국세청 검증 ISO 시각 */
+  businessVerifiedAt?: string;
 }
 
 export interface PersonalProfile {

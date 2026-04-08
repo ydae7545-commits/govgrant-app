@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchMsitPage, normalizeMsitRow, type GrantDbRow } from "@/lib/data-sources/msit";
+import { fetchBizinfoPage, normalizeBizinfoRow } from "@/lib/data-sources/bizinfo";
 import { upsertGrantRows } from "@/lib/grants/repository";
 import { serverEnv } from "@/lib/env.server";
 
@@ -68,56 +69,70 @@ export async function POST(request: NextRequest) {
   );
   const dryRun = url.searchParams.get("dryRun") === "1";
 
-  if (source !== "msit") {
+  if (source !== "msit" && source !== "bizinfo") {
     return NextResponse.json(
       { error: "unsupported_source", message: `source=${source} not implemented yet` },
       { status: 400 }
     );
   }
 
-  // ----- Fetch & normalize -----
   const env = serverEnv();
-  const serviceKey = env.DATA_GO_KR_SERVICE_KEY;
-  if (!serviceKey) {
-    return NextResponse.json(
-      {
-        error: "missing_data_go_kr_key",
-        message: "DATA_GO_KR_SERVICE_KEY env is not set",
-      },
-      { status: 500 }
-    );
-  }
-
   const startedAt = Date.now();
   const collected: GrantDbRow[] = [];
   const pageStats: Array<{ pageNo: number; rows: number; total: number }> = [];
   let lastTotalCount = 0;
 
   try {
-    for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-      const page = await fetchMsitPage({ serviceKey, pageNo, numOfRows });
-      lastTotalCount = page.totalCount;
-      pageStats.push({
-        pageNo,
-        rows: page.rows.length,
-        total: page.totalCount,
-      });
-
-      for (const row of page.rows) {
-        const normalized = normalizeMsitRow(row);
-        if (normalized) collected.push(normalized);
+    if (source === "msit") {
+      const serviceKey = env.DATA_GO_KR_SERVICE_KEY;
+      if (!serviceKey) {
+        return NextResponse.json(
+          {
+            error: "missing_data_go_kr_key",
+            message: "DATA_GO_KR_SERVICE_KEY env is not set",
+          },
+          { status: 500 }
+        );
       }
-
-      // Stop conditions:
-      //   - empty page (we've consumed everything)
-      //   - we've collected as many as the server claims to have
-      //
-      // Note: this endpoint ignores numOfRows server-side and always
-      // returns 10 rows per page regardless. Don't break on
-      // `rows.length < numOfRows` — that would always trigger after
-      // the first page.
-      if (page.rows.length === 0) break;
-      if (collected.length >= page.totalCount) break;
+      for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+        const page = await fetchMsitPage({ serviceKey, pageNo, numOfRows });
+        lastTotalCount = page.totalCount;
+        pageStats.push({ pageNo, rows: page.rows.length, total: page.totalCount });
+        for (const row of page.rows) {
+          const normalized = normalizeMsitRow(row);
+          if (normalized) collected.push(normalized);
+        }
+        // MSIT API ignores numOfRows server-side and always returns 10/page.
+        // Stop only on empty page or full collection.
+        if (page.rows.length === 0) break;
+        if (collected.length >= page.totalCount) break;
+      }
+    } else if (source === "bizinfo") {
+      const crtfcKey = env.BIZINFO_API_KEY;
+      if (!crtfcKey) {
+        return NextResponse.json(
+          {
+            error: "missing_bizinfo_key",
+            message: "BIZINFO_API_KEY env is not set",
+          },
+          { status: 500 }
+        );
+      }
+      for (let pageIndex = 1; pageIndex <= maxPages; pageIndex++) {
+        const page = await fetchBizinfoPage({
+          crtfcKey,
+          pageIndex,
+          pageUnit: numOfRows,
+        });
+        lastTotalCount = page.totalCount;
+        pageStats.push({ pageNo: pageIndex, rows: page.rows.length, total: page.totalCount });
+        for (const row of page.rows) {
+          const normalized = normalizeBizinfoRow(row);
+          if (normalized) collected.push(normalized);
+        }
+        if (page.rows.length === 0) break;
+        if (collected.length >= page.totalCount) break;
+      }
     }
   } catch (err) {
     return NextResponse.json(

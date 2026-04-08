@@ -112,6 +112,33 @@ function scorePersonal(
   return Math.min(100, score);
 }
 
+/**
+ * Phase 6: 사업자등록번호가 검증된 SME/소상공인 컨텍스트에서 사업자 상태가
+ * 비활동 (휴업/폐업) 인 경우, R&D · 정책자금 · 창업지원 · 고용지원 같은
+ * "활동 사업자만 신청 가능" 카테고리는 강하게 감점한다.
+ *
+ * 비활동 사업자도 절세 강좌(교육훈련) 등 일부 카테고리는 신청 가능하므로
+ * 모든 과제를 0점으로 만들지는 않고, 활동 사업자 한정 과제만 패널티를
+ * 준다. 검증을 안 한 경우(businessStatusCode 미설정)는 패널티 없음.
+ */
+function businessStatusPenalty(grant: Grant, org: Organization): number {
+  if (!org.businessStatusCode) return 0;
+  if (org.businessStatusCode === "01") return 0; // 계속사업자 — 정상
+
+  const activeOnlyCategories = new Set([
+    "R&D",
+    "정책자금",
+    "창업지원",
+    "고용지원",
+    "수출지원",
+  ]);
+  if (activeOnlyCategories.has(grant.category)) {
+    // 휴업자(02): 강한 감점, 폐업자(03): 사실상 제외
+    return org.businessStatusCode === "03" ? -100 : -40;
+  }
+  return 0;
+}
+
 function scoreOrg(
   grant: Grant,
   org: Organization,
@@ -122,6 +149,10 @@ function scoreOrg(
 
   // 컨소시엄 참여 가능 여부 사전 평가
   const cons = scoreConsortium(grant, org);
+
+  // Phase 6: 사업자 상태 패널티는 모든 분기에서 마지막에 적용된다.
+  // 여기서 미리 계산해서 각 return 직전에 더하지 말고, 함수 끝에서 한 번에 적용.
+  const bizPenalty = businessStatusPenalty(grant, org);
 
   // 매핑 가능한 기관 + 타겟 불일치 ⇒ 컨소시엄 매칭이 있으면 별도 경로로 추천, 없으면 0점
   if (mappedType && !grant.targetTypes.includes(mappedType)) {
@@ -134,7 +165,8 @@ function scoreOrg(
     if (tagOverlap(grant.tags, interests)) score += 5;
     const days = daysUntil(grant.applicationEnd);
     if (days >= 0 && days <= 30) score += 10;
-    return Math.min(80, score); // 직접 대상보다는 낮은 상한
+    score += bizPenalty;
+    return Math.max(0, Math.min(80, score)); // 직접 대상보다는 낮은 상한
   }
 
   // 연구소/전담부서 필수 과제인데 미보유면 즉시 0점 (필터링)
@@ -205,7 +237,10 @@ function scoreOrg(
   const days = daysUntil(grant.applicationEnd);
   if (days >= 0 && days <= 30) score += 15;
 
-  return Math.min(cap, Math.min(100, score));
+  // Phase 6: 사업자 비활동 상태 패널티 적용
+  score += bizPenalty;
+
+  return Math.max(0, Math.min(cap, Math.min(100, score)));
 }
 
 function regionMatch(grant: Grant, userRegion: string | undefined): boolean {
