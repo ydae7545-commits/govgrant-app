@@ -61,10 +61,13 @@ export function useAccountHydration() {
         .select("*")
         .eq("user_id", userId)
         .maybeSingle(),
+      // Phase 7: owner_user_id 필터를 제거. organizations RLS 가 이미
+      // org_memberships 기반으로 select 를 제한하므로 owner 와 멤버 모두
+      // 동일하게 본인의 org 만 가져온다. 이전엔 owner 만 보였어서 초대받은
+      // 멤버는 hydration 에서 누락되었다.
       supabase
         .from("organizations")
         .select("*")
-        .eq("owner_user_id", userId)
         .order("created_at", { ascending: true }),
       supabase.from("user_interests").select("category").eq("user_id", userId),
       supabase

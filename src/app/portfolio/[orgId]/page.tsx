@@ -9,11 +9,13 @@ import {
   Loader2,
   Sparkles,
   Clock,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GrantCard } from "@/components/grant/grant-card";
+import { InviteTeamDialog } from "@/components/portfolio/invite-team-dialog";
 import { useUserStore } from "@/store/user-store";
 import { featureFlags } from "@/lib/env";
 import { calculateMatchScore } from "@/lib/match-score";
@@ -170,12 +172,20 @@ export default function PortfolioOrgDetailPage({
               </p>
             )}
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/mypage">
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              수정
-            </Link>
-          </Button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <InviteTeamDialog orgId={org.id} orgName={org.name}>
+              <Button variant="outline" size="sm">
+                <UserPlus className="mr-1 h-3.5 w-3.5" />
+                팀원 초대
+              </Button>
+            </InviteTeamDialog>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/mypage">
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                수정
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-4">
