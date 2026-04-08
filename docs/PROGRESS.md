@@ -1,7 +1,7 @@
 # govgrant-app 진행 상황
 
-> 마지막 업데이트: 2026-04-08 (저녁)
-> 마지막 commit: `2945045` (성별 기반 복지 필터링)
+> 마지막 업데이트: 2026-04-08 (밤, Phase 5 opt-in 완료 후)
+> 마지막 commit: `611fe7e` (Phase 5 이메일 알림 명시적 opt-in, auto-deploy)
 > Live: <https://govgrant-app.vercel.app>
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md), 집에서 이어 작업 절차는 [`docs/HANDOFF.md`](./HANDOFF.md) 참조.
@@ -167,9 +167,21 @@ govgrant-app/
 
 ---
 
-## 📊 오늘 (2026-04-08) 완료한 commits (25개)
+## 📊 오늘 (2026-04-08) 완료한 commits (31개)
 
 ```
+611fe7e chore: auto-deploy 21:13 — Phase 5 이메일 알림 명시적 opt-in
+        (notification_subscriptions default false + 트리거 자동 생성,
+         UserAccount.emailNotificationsEnabled, mypage 마스터 토글,
+         send-digest opt-in 필터, persist v2→v3)
+ed0fad3 chore: auto-deploy 18:43 — 검색 UI: 복지 카드 11종 타겟 배지 +
+        매칭 점수 동점 시 같은 시도 인접 정렬 (bokjiro_local 그룹화)
+3febe73 chore: auto-deploy 18:33 — sign-in scope 옵션 정리 (default
+        scope 강제 + 주석)
+c98845b chore: auto-deploy 18:09 — sign-in scope: profile_nickname 명시
+51421f9 chore: auto-deploy 17:58 — sign-in scope 옵션 추가 시도
+1583c80 chore: auto-deploy 17:43 — sign-in 디버그 로그 (KOE205 추적용)
+028337f docs: PROGRESS.md 전면 업데이트 + HANDOFF.md 신규 추가
 2945045 feat(matching): 성별/연령/타겟태그 기반 복지 필터링 + 성별 UI
 54b5a59 docs(progress): Phase 6 bokjiro 복지 어댑터 + 5000건 적재 기록
 61f9fb3 fix(bokjiro): 실제 API 응답 스키마로 필드명 보정
@@ -199,42 +211,63 @@ ec9bb63 fix(phase-6): MSIT 실제 응답 형태 반영
 
 ---
 
-## 🚧 남은 과제 (우선순위 순)
+## 🚧 남은 과제 (코드 검증 후 재작성, 2026-04-08 밤)
 
-### 🔴 즉시 시작 가능 (블로커 없음)
-1. **Kakao OAuth 재개** — Phase 0에서 deferred. 로그인 옵션 추가
-2. **도메인 등록** — `govgrant.co.kr` 같은 자체 도메인 → Resend `from` 주소 교체 (스팸 스코어 개선)
-3. **첨부 파일 batch enrichment** — `/api/admin/enrich-attachments`를 prod MSS 100건에 실행 → 금액/자격 정량값 채움 (예상 비용 $12)
-4. **검색 UI 개선** — 개인 복지 카드에 "성별/연령 조건" 배지 표시, 지자체 공고 시군구 그룹화
+> 이 섹션은 028337f → 611fe7e 사이에 auto-deploy 된 6개 commit 까지 모두
+> 반영하여 코드 grep 으로 직접 검증한 결과이다. 이전 PROGRESS.md 에 "남은
+> 과제"로 적혀 있던 것 중 일부 (검색 UI 배지·정렬, 매칭 로직 여성 필터,
+> Phase 5 단일 opt-in)는 이미 prod 에 배포되어 있어 ✅ 완료 섹션으로 옮겼다.
 
-### 🟡 OpenAI 충전 후 (블로커: $5)
-5. **Phase 4 청크 2 — Semantic Search**
-   - 기존 전체 grants 임베딩 (~$0.07)
-   - `/api/grants/semantic?q=...` 엔드포인트
-   - 검색 페이지에 "의미 검색" 토글 ("청년수당" → "청년기본소득" 자동 매칭)
-6. **Phase 4 청크 3 — RAG 사업계획서**
-   - `proposal_examples` 테이블에 선정 사례 import (수동 또는 크롤링)
-   - Phase 3 `proposal-user.ts`의 `pastExamples` 자리 연결
-   - 생성 품질 before/after 비교
+### ✅ 신규 완료 (이전 PROGRESS.md 에는 "남은 과제" 였음)
 
-### 🟢 중간 우선순위
-7. **Phase 5 알림 확장** — 이메일 opt-in/opt-out UI, D-7/3/1 다중 빈도
-8. **Phase 7 B2B 확장** — 포트폴리오 초대 시스템 (여러 운영자 공유), 교차 매칭 테이블 뷰
-9. **매칭 로직 정교화**
-   - 여성 사용자에게 남성 전용 공고 배제 (현재는 남성만 처리)
-   - 소득 수준 기반 "저소득 전용" 복지 필터
-10. **Cron embed 실패 로깅 개선** — 현재는 `ok: true`로 반환되어 부분 실패 감지 어려움
+| 항목 | 위치 |
+|---|---|
+| 검색 UI — 복지 카드 11종 타겟 배지 | `src/components/grant/grant-card.tsx:24` `getWelfareBadges` |
+| 검색 UI — 매칭 동점 시 같은 시도 인접 정렬 | `src/app/search/page.tsx` `displayGrants` secondary sort |
+| 매칭 로직 — 여성 → 남성 전용 공고 배제 | `src/lib/match-score.ts:92-95` |
+| Phase 5 — 단일 이메일 opt-in (마스터 토글) | `611fe7e`. notification_subscriptions default false + 트리거 자동 생성 + mypage 토글 + send-digest 필터 |
+| Cron 부분 실패 로깅 (top-level + sub-step) | `cron/daily/route.ts` `anyFailed` + 207, `embed-grants` `ok: failed===0`, `send-digest` 동일 |
 
-### 🔵 후순위 (Phase 8~10)
-11. **Phase 8 — 수익화** (Toss Payments 구독, 플랜별 한도)
-12. **Phase 9 — 운영/모니터링** (Sentry, PostHog, 관리 대시보드)
-13. **Phase 10 — 모바일 앱** (Expo)
+### 🔴 즉시 시작 가능 (블로커 없음, 코드 0)
+
+| # | 작업 | 어디부터 |
+|---|---|---|
+| 1 | **Phase 5 — 알림 빈도 다중화 (D-7/3/1)** | DB 컬럼 `email_deadline_days int[] default '{7,3,1}'` 이미 있음. 사용 코드 0건. send-digest 필터 + mypage UI 두 곳 확장. |
+| 2 | **Phase 7 — B2B 포트폴리오 초대 시스템** | DB `org_memberships` 스키마는 Phase 1 에 forward-prep 되어 있음 (owner 자동 추가만 동작). 초대/수락 API + UI 신규. |
+| 3 | **매칭 로직 — 소득 수준 기반 필터** | `PersonalProfile.incomeLevel` 필드는 있지만 `match-score.ts` 에서 사용 0회. 복지 태그 "저소득"/"기초생활" + incomeLevel 조합 필터 추가. |
+| 4 | **첨부 batch enrichment 실행** | 코드 `/api/admin/enrich-attachments` 완성. prod MSS/MSIT 의 `enrichment_status='enriched'` 100건 실행. ~$5–12 Anthropic 비용. |
+
+### 🟡 외부 작업 후 시작 가능
+
+| # | 작업 | 블로커 |
+|---|---|---|
+| 5 | **Kakao OAuth 활성화 마무리** | 카카오 비즈 앱 인증 심사 통과 (1~3일). 코드 100% 준비됨, 인증만 통과하면 자동 동작. |
+| 6 | **Phase 4 — Semantic Search** | OpenAI 충전 ($5). `/api/grants/semantic` 라우트 + 검색 페이지 "의미 검색" 토글 신규. 임베딩 인프라/cron 은 이미 있음. |
+| 7 | **Phase 4 — RAG 사업계획서** | OpenAI 충전 + 사례 데이터 수집. `pastExamples` 타입은 `proposal-user.ts:191` 에 정의되어 있지만 `generate/route.ts` 에서 채우지 않음 — 연결만 하면 됨. |
+| 8 | **도메인 등록 + Resend `from` 교체** | 도메인 구매. 스팸 스코어 개선 효과. |
+
+### 🟢 중간 우선순위 (코드 변경, 큰 작업)
+
+| # | 작업 | 비고 |
+|---|---|---|
+| 9 | **Cron sub-step 실패 로깅 추가 개선** | top-level 은 207 반환됨. enrich-grants/sync-grants 의 row-level 실패도 ok 필드에 반영하면 더 정확. |
+| 10 | **모바일 반응형 점검** | shadcn/ui 기본은 모바일 친화적이지만 `/portfolio` `/proposals/[id]` 같은 페이지는 미검증. |
+| 11 | **접근성 (a11y)** | 키보드 네비게이션, ARIA 라벨, 포커스 trap. |
+| 12 | **SEO + OG 이미지** | meta 태그, sitemap.xml, robots.txt, OG 이미지 자동 생성. |
+| 13 | **에러 페이지 / 404 / 500 / 로딩 스켈레톤** | 현재는 기본 Next.js 페이지. 브랜드 일치 디자인 필요. |
+
+### 🔵 후순위 (Phase 8~10, 별도 sprint)
+14. **Phase 8 — 수익화** (Toss Payments 구독, 플랜별 한도)
+15. **Phase 9 — 운영/모니터링** (Sentry, PostHog, 관리 대시보드)
+16. **Phase 10 — 모바일 앱** (Expo)
 
 ### 🔐 알려진 보안/기술 부채
-- Anthropic 키가 채팅 기록에 노출됨 (`...vcKcvwAA`) — revoke + 새 키로 교체 권장
-- OpenAI 잔액 0 — Phase 4 활성화 블로커
-- Bokjiro 매일 적재: 기존 upsert 패턴이라 중복 누적 없음, but 삭제된 공고 감지 안 됨
-- `usage_events` 는 user_id 필수라 cron system 이벤트 로깅 안 됨 (현재는 console 로그만)
+- **Anthropic 키 노출** — 채팅 기록에 `...vcKcvwAA` 노출. revoke + 새 키로 교체 권장 (사용자 직접 작업).
+- **OpenAI 잔액 0** — Phase 4 활성화 블로커.
+- **Bokjiro 삭제 감지 안 됨** — 매일 upsert 패턴이라 중복은 없으나, 카카오 측에서 삭제된 공고는 prod 에 영구 잔존.
+- **`usage_events` cron 로깅 불가** — user_id 필수 제약 때문. cron system 이벤트는 console 로그만.
+- **mypage `setMounted` / use-account `ref` ESLint error 2건** — Next.js 16 의 새 react-hooks rule 위반. SSR hydration 패턴 재작성 필요.
+- **Stop hook auto-deploy 자동 commit/push** — 코드 수정 후 자동으로 commit/deploy 됨. 이로 인해 수동 commit 시도 시 "nothing to commit" 가 자주 발생. 의도된 동작이지만 흐름 헷갈릴 수 있음. (`MEMORY.md` 의 `feedback_deploy_and_open.md` 메모 참조.)
 
 ---
 
