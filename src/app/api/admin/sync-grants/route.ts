@@ -36,6 +36,19 @@ import { serverEnv } from "@/lib/env.server";
 const HARD_CAP_PAGES = 50;
 const HARD_CAP_PER_PAGE = 1000;
 
+/**
+ * Pin this route to Vercel's Seoul region.
+ *
+ * bizinfo.go.kr (the 기업마당 API host) blocks requests from non-Korean
+ * IP ranges — when the function ran from Vercel's US-East default it
+ * returned `fetch failed` with no body. apis.data.go.kr (MSIT) is more
+ * permissive but Korean-region execution is also strictly faster for
+ * users in Korea, so pin everything in this route to icn1.
+ */
+export const runtime = "nodejs";
+export const preferredRegion = ["icn1"];
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   // ----- Auth -----
   const auth = request.headers.get("authorization") ?? "";
@@ -135,10 +148,14 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch (err) {
+    const e = err as Error & { cause?: unknown };
     return NextResponse.json(
       {
         error: "fetch_failed",
-        message: err instanceof Error ? err.message : String(err),
+        message: e instanceof Error ? e.message : String(e),
+        // Node 18+ wraps the underlying network error in `cause`. Surface it
+        // so we can tell ENOTFOUND from ECONNREFUSED from EAI_AGAIN etc.
+        cause: e?.cause ? String(e.cause) : undefined,
         pageStats,
       },
       { status: 502 }
