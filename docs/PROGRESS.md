@@ -1,7 +1,7 @@
 # govgrant-app 진행 상황
 
 > 마지막 업데이트: 2026-04-08
-> 마지막 commit: `20e1ab8` (Phase 6 MSIT 어댑터 + 페이지 break 수정)
+> 마지막 commit: `8bb1e2f` (Phase 6 — bizinfo + NTS + Seoul region)
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md) 참조.
 
@@ -97,8 +97,27 @@
 
 **알려진 한계** (Phase 6.5에서 보강):
 - MSIT API가 numOfRows 무시하고 항상 10건씩 → 401페이지 필요
-- 신청 마감일/금액/자격요건 미수집 → 카드에 D-NaN, "무료/현물 지원" 표시
+- MSIT는 신청 마감일/금액/자격요건 미수집 → 카드에 D-NaN, "무료/현물 지원" 표시
 - 첨부 .hwp/.zip 본문 LLM 파싱으로 보강 가능
+
+### Phase 6 두 번째 청크 (commit 8bb1e2f)
+
+**기업마당(bizinfo.go.kr) 어댑터 추가** ⭐
+- src/lib/data-sources/bizinfo.ts
+- 산업부, 중기부, 고용부, 농식품부, 환경부, 지자체 등 모든 부처 통합 API
+- 풍부한 필드: 신청 기간, 지역, 카테고리, 태그 모두 포함 (D-NaN 해결)
+- 1,190건 사용 가능, prod에 500건 적재 완료
+- bizinfo.go.kr이 해외 IP 차단 → vercel.json regions=["icn1"]로 Seoul 고정
+
+**국세청 사업자등록번호 검증**
+- src/lib/data-sources/nts.ts (api.odcloud.kr)
+- /api/business/verify 엔드포인트 (인증된 사용자만)
+- OrgFormDialog에 입력 + "확인" 버튼 + 결과 인라인 표시
+- match-score: 휴업자 -40, 폐업자 -100 (R&D/정책자금/창업/고용/수출 카테고리 한정)
+- Organization 타입에 6개 필드 추가 (businessNo, businessStatusCode 등)
+
+**현재 prod grants**: 600건 (MSIT 100 + BIZINFO 500), 5,198건 잠재
+**현재 prod 검색**: "청년" → 24건, "AI" → 21건+ 정상 동작
 
 ---
 
