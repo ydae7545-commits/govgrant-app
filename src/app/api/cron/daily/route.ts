@@ -95,11 +95,18 @@ export async function GET(request: NextRequest) {
   }
 
   // Determine our own base URL so we can call sibling admin routes.
-  // Vercel sets VERCEL_URL to the deployment's host (without protocol).
-  // In dev this falls back to the request origin.
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : new URL(request.url).origin;
+  //
+  // Careful: VERCEL_URL points to the DEPLOYMENT-SPECIFIC host
+  // (govgrant-xyz123-ydae7545-commits-projects.vercel.app) which is gated
+  // by Vercel Deployment Protection. Internal fetches to that host bounce
+  // with 401 HTML before reaching our handler.
+  //
+  // Use the PUBLIC alias instead:
+  //   1. NEXT_PUBLIC_APP_URL env (e.g. https://govgrant-app.vercel.app)
+  //   2. Fall back to the request's own origin (works for both prod alias
+  //      and local dev)
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
 
   const results: StepResult[] = [];
 
