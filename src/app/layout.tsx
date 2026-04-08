@@ -75,6 +75,25 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  /**
+   * 검색엔진 소유권 검증.
+   *
+   * - google: Google Search Console (https://search.google.com/search-console)
+   *   에서 발급. /sitemap.xml 자동 색인 + 검색 분석.
+   * - naver-site-verification: Naver Search Advisor
+   *   (https://searchadvisor.naver.com) 에서 발급. 한국 검색 트래픽 핵심.
+   *
+   * 이 메타 태그는 prod 페이지의 <head> 에 노출되며, 양쪽 콘솔에서 "확인"
+   * 버튼을 누르면 verify 된다. verify 후에도 메타 태그는 계속 유지해야
+   * 소유권이 풀리지 않는다.
+   */
+  verification: {
+    google: "f69S0sSaJHyb_u0bGyU24gpW9LVzuelVv0JcMiQEE30",
+    other: {
+      "naver-site-verification":
+        "849d48e340feca31227922b4b5db7027dd7f4e14",
+    },
+  },
 };
 
 export default function RootLayout({
