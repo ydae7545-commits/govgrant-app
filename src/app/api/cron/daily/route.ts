@@ -138,6 +138,22 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // 복지 — 중앙부처 360건 / 지자체 4,000건. 하루 1회라 전체 재적재.
+  results.push(
+    await callInternal(
+      baseUrl,
+      "/api/admin/sync-grants?source=bokjiro_central&maxPages=5&numOfRows=100",
+      adminToken
+    )
+  );
+  results.push(
+    await callInternal(
+      baseUrl,
+      "/api/admin/sync-grants?source=bokjiro_local&maxPages=20&numOfRows=100",
+      adminToken
+    )
+  );
+
   // ----- Step 2: enrich-grants (LLM) -----
   // 한 번에 30건 enrichment (Vercel 60s timeout 내에서 여유 있게)
   results.push(

@@ -4,6 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { fetchMsitPage, normalizeMsitRow, type GrantDbRow } from "@/lib/data-sources/msit";
 import { fetchBizinfoPage, normalizeBizinfoRow } from "@/lib/data-sources/bizinfo";
 import { fetchMssPage, normalizeMssRow } from "@/lib/data-sources/mss";
+import {
+  fetchBokjiroCentralPage,
+  fetchBokjiroLocalPage,
+  normalizeBokjiroRow,
+} from "@/lib/data-sources/bokjiro";
 import { upsertGrantRows } from "@/lib/grants/repository";
 import { serverEnv } from "@/lib/env.server";
 
@@ -83,7 +88,13 @@ export async function POST(request: NextRequest) {
   );
   const dryRun = url.searchParams.get("dryRun") === "1";
 
-  if (source !== "msit" && source !== "bizinfo" && source !== "mss") {
+  if (
+    source !== "msit" &&
+    source !== "bizinfo" &&
+    source !== "mss" &&
+    source !== "bokjiro_central" &&
+    source !== "bokjiro_local"
+  ) {
     return NextResponse.json(
       { error: "unsupported_source", message: `source=${source} not implemented yet` },
       { status: 400 }
@@ -165,6 +176,40 @@ export async function POST(request: NextRequest) {
         pageStats.push({ pageNo, rows: page.rows.length, total: page.totalCount });
         for (const row of page.rows) {
           const normalized = normalizeMssRow(row);
+          if (normalized) collected.push(normalized);
+        }
+        if (page.rows.length === 0) break;
+        if (collected.length >= page.totalCount) break;
+      }
+    } else if (
+      source === "bokjiro_central" ||
+      source === "bokjiro_local"
+    ) {
+      const serviceKey = env.DATA_GO_KR_SERVICE_KEY;
+      if (!serviceKey) {
+        return NextResponse.json(
+          {
+            error: "missing_data_go_kr_key",
+            message: "DATA_GO_KR_SERVICE_KEY env is not set",
+          },
+          { status: 500 }
+        );
+      }
+      const fetcher =
+        source === "bokjiro_central"
+          ? fetchBokjiroCentralPage
+          : fetchBokjiroLocalPage;
+      const variant = source === "bokjiro_central" ? "central" : "local";
+      for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+        const page = await fetcher({ serviceKey, pageNo, numOfRows });
+        lastTotalCount = page.totalCount;
+        pageStats.push({
+          pageNo,
+          rows: page.rows.length,
+          total: page.totalCount,
+        });
+        for (const row of page.rows) {
+          const normalized = normalizeBokjiroRow(row, variant);
           if (normalized) collected.push(normalized);
         }
         if (page.rows.length === 0) break;
