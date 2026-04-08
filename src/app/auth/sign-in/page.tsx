@@ -34,34 +34,30 @@ function SignInContent() {
   const supabaseConfigured = featureFlags.useSupabase;
 
   const signInWithProvider = async (provider: "google" | "kakao") => {
-    console.log("[sign-in] click", provider);
     setLoading(provider);
     setError(null);
     try {
       const supabase = createClient();
-      console.log("[sign-in] supabase client created");
       const redirectTo = `${publicEnv.APP_URL}/auth/callback?next=${encodeURIComponent(
         nextPath
       )}`;
-      console.log("[sign-in] redirectTo", redirectTo);
       // Supabase Kakao default scope = "account_email profile_image profile_nickname".
       // 클라이언트 scopes 옵션은 default를 대체하지 않고 추가만 되므로
       // (URL에 profile_nickname 중복이 생김) 명시하지 않는다. 대신 카카오
-      // 콘솔의 동의항목에서 세 항목 모두 활성화 (선택 동의)되어 있어야 한다.
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
+      // 콘솔의 동의항목에서 세 항목 모두 활성화 (선택 동의)되어 있어야 하고,
+      // account_email은 비즈 앱 인증이 필수이다.
+      const { error: authError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
         },
       });
-      console.log("[sign-in] result", { data, authError });
       if (authError) {
         setError(authError.message);
         setLoading(null);
       }
       // On success Supabase redirects the browser away; no return value.
     } catch (e) {
-      console.error("[sign-in] caught error", e);
       setError(e instanceof Error ? e.message : "로그인에 실패했어요.");
       setLoading(null);
     }
