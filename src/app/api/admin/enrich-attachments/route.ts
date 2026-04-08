@@ -193,31 +193,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  console.info(
-    "[grants:enrich-attachments]",
-    JSON.stringify({
-      processed: results.length,
-      enriched: results.filter((r) => r.status === "enriched").length,
-      skipped: results.filter((r) => r.status === "skipped").length,
-      failed: results.filter((r) => r.status === "failed").length,
-      totalCost,
-      tookMs: Date.now() - startedAt,
-    })
-  );
-
-  return NextResponse.json({
-    ok: true,
-    mode: dryRun ? "dryRun" : "live",
+  // 다른 admin route 들과 동일 패턴: 부분 실패도 ok=false + 207 로 내려야
+  // cron/daily 가 잡아낸다.
+  const failedCount = results.filter((r) => r.status === "failed").length;
+  const summary = {
     processed: results.length,
     enriched: results.filter((r) => r.status === "enriched").length,
     skipped: results.filter((r) => r.status === "skipped").length,
-    failed: results.filter((r) => r.status === "failed").length,
-    totalCostUsd: totalCost,
+    failed: failedCount,
+    totalCost,
     tookMs: Date.now() - startedAt,
-    results: dryRun
-      ? results
-      : results.map((r) => ({ ...r, extracted: undefined })),
-  });
+  };
+
+  if (failedCount > 0) {
+    console.warn(
+      "[grants:enrich-attachments] partial failure",
+      JSON.stringify(summary)
+    );
+  } else {
+    console.info("[grants:enrich-attachments]", JSON.stringify(summary));
+  }
+
+  return NextResponse.json(
+    {
+      ok: failedCount === 0,
+      mode: dryRun ? "dryRun" : "live",
+      processed: results.length,
+      enriched: summary.enriched,
+      skipped: summary.skipped,
+      failed: failedCount,
+      totalCostUsd: totalCost,
+      tookMs: summary.tookMs,
+      results: dryRun
+        ? results
+        : results.map((r) => ({ ...r, extracted: undefined })),
+    },
+    { status: failedCount === 0 ? 200 : 207 }
+  );
 }
 
 function clamp(n: number, lo: number, hi: number): number {

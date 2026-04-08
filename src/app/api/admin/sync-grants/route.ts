@@ -245,31 +245,42 @@ export async function POST(request: NextRequest) {
 
   // ----- Upsert -----
   const upsertResult = await upsertGrantRows(collected);
+  const errorCount = upsertResult.errors.length;
 
   // Audit log: usage_events requires user_id (RLS shape designed for LLM
   // metering), so for system cron events we just emit a structured console
   // line. Vercel captures these in the function logs.
-  console.info(
-    "[grants:sync]",
-    JSON.stringify({
-      source,
-      collected: collected.length,
-      inserted: upsertResult.inserted,
-      errors: upsertResult.errors,
-      tookMs: Date.now() - startedAt,
-    })
-  );
-
-  return NextResponse.json({
-    ok: true,
-    mode: "live",
+  // 부분 실패 (errorCount > 0) 일 땐 console.warn 으로 격상해서 Vercel
+  // 대시보드의 warning 필터에 잡히게 한다.
+  const summary = {
     source,
-    pageStats,
     collected: collected.length,
-    upsert: upsertResult,
-    sourceTotalCount: lastTotalCount,
+    inserted: upsertResult.inserted,
+    errors: upsertResult.errors,
     tookMs: Date.now() - startedAt,
-  });
+  };
+  if (errorCount > 0) {
+    console.warn("[grants:sync] partial failure", JSON.stringify(summary));
+  } else {
+    console.info("[grants:sync]", JSON.stringify(summary));
+  }
+
+  return NextResponse.json(
+    {
+      // upsert 중 일부 행이라도 실패하면 ok=false 로 내려서 cron/daily
+      // anyFailed 집계에 반영. (이전엔 ok: true 하드코딩이었음.)
+      ok: errorCount === 0,
+      mode: "live",
+      source,
+      pageStats,
+      collected: collected.length,
+      upsert: upsertResult,
+      sourceTotalCount: lastTotalCount,
+      tookMs: summary.tookMs,
+    },
+    // 부분 실패는 207 Multi-Status, 전체 성공은 200.
+    { status: errorCount === 0 ? 200 : 207 }
+  );
 }
 
 function clamp(n: number, lo: number, hi: number): number {

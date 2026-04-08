@@ -210,29 +210,45 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  console.info(
-    "[grants:enrich]",
-    JSON.stringify({
-      processed: results.length,
-      enriched: results.filter((r) => r.status === "enriched").length,
-      skipped: results.filter((r) => r.status === "skipped").length,
-      failed: results.filter((r) => r.status === "failed").length,
-      totalCost,
-      tookMs: Date.now() - startedAt,
-    })
-  );
-
-  return NextResponse.json({
-    ok: true,
-    mode: dryRun ? "dryRun" : "live",
+  // Sub-step 실패 카운트를 응답 ok 와 HTTP status 에 정확히 반영해야
+  // top-level cron/daily 가 anyFailed 집계에서 부분 실패를 잡아낸다.
+  // 이전엔 ok: true 하드코딩이었어서 100건 중 10건이 실패해도 cron 이
+  // "정상 종료" 로 표시되는 silent-failure 패턴이 있었다. (skipped 는
+  // body_too_short 같은 정상 케이스라 실패 카운트에서 제외.)
+  const failedCount = results.filter((r) => r.status === "failed").length;
+  const summary = {
     processed: results.length,
     enriched: results.filter((r) => r.status === "enriched").length,
     skipped: results.filter((r) => r.status === "skipped").length,
-    failed: results.filter((r) => r.status === "failed").length,
-    totalCostUsd: totalCost,
+    failed: failedCount,
+    totalCost,
     tookMs: Date.now() - startedAt,
-    results: dryRun ? results : results.map((r) => ({ ...r, extracted: undefined })),
-  });
+  };
+
+  if (failedCount > 0) {
+    console.warn("[grants:enrich] partial failure", JSON.stringify(summary));
+  } else {
+    console.info("[grants:enrich]", JSON.stringify(summary));
+  }
+
+  return NextResponse.json(
+    {
+      ok: failedCount === 0,
+      mode: dryRun ? "dryRun" : "live",
+      processed: results.length,
+      enriched: summary.enriched,
+      skipped: summary.skipped,
+      failed: failedCount,
+      totalCostUsd: totalCost,
+      tookMs: summary.tookMs,
+      results: dryRun
+        ? results
+        : results.map((r) => ({ ...r, extracted: undefined })),
+    },
+    // 207 Multi-Status — 일부 성공 + 일부 실패. cron orchestrator 가
+    // res.ok === false 로 판단해 anyFailed 에 카운트한다.
+    { status: failedCount === 0 ? 200 : 207 }
+  );
 }
 
 function clamp(n: number, lo: number, hi: number): number {
