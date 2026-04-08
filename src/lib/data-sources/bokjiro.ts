@@ -68,23 +68,44 @@ const LOCAL_ENDPOINT =
  *   ctpvNm          - 시도명 (지자체 버전에만)
  *   sggNm           - 시군구명 (지자체 버전에만)
  */
+/**
+ * 실제 API 응답 스키마 (2026-04-08 verified).
+ *
+ * 중앙부처와 지자체가 서로 다른 필드 이름을 쓰기도 한다:
+ *   - central: lifeArray / intrsThemaArray / trgterIndvdlArray / jurMnofNm
+ *   - local  : lifeNmArray / intrsThemaNmArray / trgterIndvdlNmArray / bizChrDeptNm + ctpvNm + sggNm
+ * 두 변형을 모두 optional로 잡고, normalize 단계에서 우선순위로 픽.
+ */
 export interface BokjiroRow {
   servId?: string;
   servNm?: string;
-  jurMnofNm?: string;         // 중앙: 소관 부처
-  jurOrgNm?: string;          // 지자체: 소관 기관
-  bizChrDeptNm?: string;      // 담당 부서
-  servDgst?: string;          // 서비스 요약
-  servDtlLink?: string;       // 상세 URL
-  lifeNmArray?: string;       // 생애주기 (콤마 구분)
-  intrsThemaArray?: string;   // 관심주제
-  trgterIndvdlArray?: string; // 대상자 개별특성
-  ctpvNm?: string;            // 시도 (지자체)
-  sggNm?: string;             // 시군구 (지자체)
-  aplyMtdCn?: string;         // 신청 방법
-  sprtCycNm?: string;         // 지원 주기
-  srvPvsnNm?: string;         // 제공 유형 (현금/현물/서비스)
-  lastModYmd?: string;        // 최종 수정일
+  // 소관 기관 / 부처
+  jurMnofNm?: string;            // central: 소관 부처명
+  jurOrgNm?: string;             // central: 소관 조직
+  bizChrDeptNm?: string;         // local: 담당 부서명 전체
+  // 요약 + 링크
+  servDgst?: string;
+  servDtlLink?: string;
+  // 생애주기 (중앙 vs 지자체 필드명 다름)
+  lifeArray?: string;            // central
+  lifeNmArray?: string;          // local
+  // 관심 주제
+  intrsThemaArray?: string;      // central
+  intrsThemaNmArray?: string;    // local
+  // 대상자 개별 특성
+  trgterIndvdlArray?: string;    // central
+  trgterIndvdlNmArray?: string;  // local
+  // 지자체 전용
+  ctpvNm?: string;               // 시도
+  sggNm?: string;                // 시군구
+  aplyMtdNm?: string;            // 신청 방법 (인터넷/방문/우편)
+  // 공통
+  sprtCycNm?: string;            // 지원 주기 (1회성/월/분기)
+  srvPvsnNm?: string;            // 제공 유형 (현금지급/현물지급/서비스)
+  onapPsbltYn?: string;          // 온라인 신청 가능 여부
+  rprsCtadr?: string;            // 대표 연락처
+  lastModYmd?: string;           // 최종 수정일
+  svcfrstRegTs?: string;         // 최초 등록 시각
   [k: string]: unknown;
 }
 
@@ -195,37 +216,41 @@ async function fetchBokjiroGeneric(
  * 반복되는 구조가 일반적. 이름이 API 별로 약간 달라서 여러 wrapper 를
  * 시도.
  */
+/**
+ * API 응답은 `<wantedList>` wrapper 안에 `<servList>` 항목이 반복되는
+ * 구조 (verified 2026-04-08). 단수가 아니라 반복 요소라는 게 특이.
+ */
 function parseItems(xml: string): BokjiroRow[] {
   const rows: BokjiroRow[] = [];
 
-  // 가능한 item 태그 이름들
-  const itemTags = ["servList", "wantedList", "item"];
-
-  for (const tag of itemTags) {
-    const itemRe = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "g");
-    let m: RegExpExecArray | null;
-    while ((m = itemRe.exec(xml))) {
-      const inner = m[1];
-      rows.push({
-        servId: extractField(inner, "servId"),
-        servNm: extractField(inner, "servNm"),
-        jurMnofNm: extractField(inner, "jurMnofNm"),
-        jurOrgNm: extractField(inner, "jurOrgNm"),
-        bizChrDeptNm: extractField(inner, "bizChrDeptNm"),
-        servDgst: extractField(inner, "servDgst"),
-        servDtlLink: extractField(inner, "servDtlLink"),
-        lifeNmArray: extractField(inner, "lifeNmArray"),
-        intrsThemaArray: extractField(inner, "intrsThemaArray"),
-        trgterIndvdlArray: extractField(inner, "trgterIndvdlArray"),
-        ctpvNm: extractField(inner, "ctpvNm"),
-        sggNm: extractField(inner, "sggNm"),
-        aplyMtdCn: extractField(inner, "aplyMtdCn"),
-        sprtCycNm: extractField(inner, "sprtCycNm"),
-        srvPvsnNm: extractField(inner, "srvPvsnNm"),
-        lastModYmd: extractField(inner, "lastModYmd"),
-      });
-    }
-    if (rows.length > 0) break; // 한 번이라도 파싱되면 그 태그를 사용
+  const itemRe = /<servList>([\s\S]*?)<\/servList>/g;
+  let m: RegExpExecArray | null;
+  while ((m = itemRe.exec(xml))) {
+    const inner = m[1];
+    rows.push({
+      servId: extractField(inner, "servId"),
+      servNm: extractField(inner, "servNm"),
+      jurMnofNm: extractField(inner, "jurMnofNm"),
+      jurOrgNm: extractField(inner, "jurOrgNm"),
+      bizChrDeptNm: extractField(inner, "bizChrDeptNm"),
+      servDgst: extractField(inner, "servDgst"),
+      servDtlLink: extractField(inner, "servDtlLink"),
+      lifeArray: extractField(inner, "lifeArray"),
+      lifeNmArray: extractField(inner, "lifeNmArray"),
+      intrsThemaArray: extractField(inner, "intrsThemaArray"),
+      intrsThemaNmArray: extractField(inner, "intrsThemaNmArray"),
+      trgterIndvdlArray: extractField(inner, "trgterIndvdlArray"),
+      trgterIndvdlNmArray: extractField(inner, "trgterIndvdlNmArray"),
+      ctpvNm: extractField(inner, "ctpvNm"),
+      sggNm: extractField(inner, "sggNm"),
+      aplyMtdNm: extractField(inner, "aplyMtdNm"),
+      sprtCycNm: extractField(inner, "sprtCycNm"),
+      srvPvsnNm: extractField(inner, "srvPvsnNm"),
+      onapPsbltYn: extractField(inner, "onapPsbltYn"),
+      rprsCtadr: extractField(inner, "rprsCtadr"),
+      lastModYmd: extractField(inner, "lastModYmd"),
+      svcfrstRegTs: extractField(inner, "svcfrstRegTs"),
+    });
   }
 
   return rows;
@@ -272,10 +297,17 @@ const REGION_PATTERNS: Array<{ pat: RegExp; out: string }> = [
   { pat: /제주/, out: "제주특별자치도" },
 ];
 
-function inferRegion(ctpv: string | undefined): string {
-  if (!ctpv) return "전국";
-  for (const { pat, out } of REGION_PATTERNS) {
-    if (pat.test(ctpv)) return out;
+function inferRegion(
+  ctpv: string | undefined,
+  fallback?: string
+): string {
+  const sources = [ctpv, fallback].filter(
+    (s): s is string => typeof s === "string" && s.length > 0
+  );
+  for (const s of sources) {
+    for (const { pat, out } of REGION_PATTERNS) {
+      if (pat.test(s)) return out;
+    }
   }
   return "전국";
 }
@@ -293,9 +325,15 @@ function buildTags(row: BokjiroRow): string[] {
       .map((t) => t.trim())
       .filter((t) => t.length > 0 && t.length < 20);
 
+  // 생애주기: central 과 local 모두 지원
+  splitComma(row.lifeArray).forEach((t) => tags.add(t));
   splitComma(row.lifeNmArray).forEach((t) => tags.add(t));
+  // 관심 주제
   splitComma(row.intrsThemaArray).forEach((t) => tags.add(t));
+  splitComma(row.intrsThemaNmArray).forEach((t) => tags.add(t));
+  // 대상자 개별 특성
   splitComma(row.trgterIndvdlArray).forEach((t) => tags.add(t));
+  splitComma(row.trgterIndvdlNmArray).forEach((t) => tags.add(t));
 
   if (row.ctpvNm) tags.add(row.ctpvNm);
   if (row.sggNm) tags.add(row.sggNm);
@@ -310,7 +348,9 @@ function buildTags(row: BokjiroRow): string[] {
  */
 function inferTargetTypes(row: BokjiroRow): UserType[] {
   const out = new Set<UserType>(["individual"]);
-  const combined = `${row.servNm ?? ""} ${row.intrsThemaArray ?? ""}`;
+  const combined = `${row.servNm ?? ""} ${row.intrsThemaArray ?? ""} ${
+    row.intrsThemaNmArray ?? ""
+  } ${row.trgterIndvdlArray ?? ""} ${row.trgterIndvdlNmArray ?? ""}`;
   if (/기업|사업자|소상공인|자영/.test(combined)) out.add("sme");
   return [...out];
 }
@@ -336,9 +376,15 @@ export function normalizeBokjiroRow(
   const source = variant === "central" ? "BOKJIRO_CENTRAL" : "BOKJIRO_LOCAL";
 
   const organization =
-    row.jurMnofNm ?? row.jurOrgNm ?? (variant === "central" ? "정부" : "지자체");
+    // central: jurMnofNm (소관부처) 우선, local: bizChrDeptNm (담당부서 전체 경로)
+    row.jurMnofNm ??
+    row.bizChrDeptNm ??
+    row.jurOrgNm ??
+    (variant === "central" ? "정부" : "지자체");
   const description = row.servDgst ?? null;
-  const region = variant === "local" ? inferRegion(row.ctpvNm) : "전국";
+  // 지자체 버전: ctpvNm이 주, 없으면 bizChrDeptNm("울산광역시 울주군 ...")에서 추출
+  const region =
+    variant === "local" ? inferRegion(row.ctpvNm, row.bizChrDeptNm) : "전국";
   const tags = buildTags(row);
   const targetTypes = inferTargetTypes(row);
 
