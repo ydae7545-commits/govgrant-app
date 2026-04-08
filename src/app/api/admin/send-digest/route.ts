@@ -14,8 +14,9 @@ import type { Organization } from "@/types/user";
  * 사용. 로직:
  *
  *   1. users 테이블에서 "포트폴리오 운영자" 후보 뽑기
- *      - 지금 기준: organizations 배열 크기 >= 1 인 모든 유저
- *      - (Phase 7에서 opt-in 설정 추가 예정)
+ *      - notification_subscriptions.email_enabled = true (Phase 5: 명시적 동의)
+ *      - email 컬럼이 not null
+ *      - organizations 배열 크기 >= 1 (이후 단계에서 필터)
  *   2. 각 유저마다:
  *      - organizations + interests 로드
  *      - buildPortfolioDigest() 호출
@@ -70,14 +71,40 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
 
   // ----- 수신 대상 선정 -----
+  // Phase 5: opt-in 사용자만 발송. notification_subscriptions 와 inner-join.
+  // PostgREST 의 관계 임베딩으로 한 쿼리에 처리하면 LEFT JOIN 이 기본이라
+  // opt-out / 행 없음 사용자가 모두 통과되어버려 개인정보 동의 위반이 된다.
+  // 그래서 먼저 opt-in user_id 목록을 따로 뽑고 그 id 만 users 에서 조회한다.
+  const { data: optInRows, error: optInErr } = await supabase
+    .from("notification_subscriptions")
+    .select("user_id")
+    .eq("email_enabled", true);
+  if (optInErr) {
+    return NextResponse.json(
+      { error: "opt_in_fetch_failed", message: optInErr.message },
+      { status: 500 }
+    );
+  }
+  const optInIds = (optInRows ?? []).map((r) => r.user_id as string);
+  if (optInIds.length === 0 && !singleUserId) {
+    return NextResponse.json({
+      ok: true,
+      mode: dryRun ? "dryRun" : "live",
+      processed: 0,
+      message: "no opt-in users",
+    });
+  }
+
   let userQuery = supabase
     .from("users")
     .select("id, display_name, email")
     .not("email", "is", null);
   if (singleUserId) {
+    // 디버깅 모드: 단일 사용자 강제 발송. opt-in 검증을 우회하므로
+    // 운영 cron 이 아니라 수동 테스트에서만 사용해야 한다.
     userQuery = userQuery.eq("id", singleUserId);
   } else {
-    userQuery = userQuery.limit(limit);
+    userQuery = userQuery.in("id", optInIds).limit(limit);
   }
   const { data: users, error: usersErr } = await userQuery;
   if (usersErr) {

@@ -113,6 +113,8 @@ async function loadAccount(
     activeContextId: (usersRow.active_context_id as string) || "personal",
     createdAt: (usersRow.created_at as string) || new Date().toISOString(),
     completedOnboarding: (usersRow.completed_onboarding as boolean) ?? false,
+    // 섹션 재생성 컨텍스트에서는 사용 안 함. 안전 기본값.
+    emailNotificationsEnabled: false,
   };
 }
 

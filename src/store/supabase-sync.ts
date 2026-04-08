@@ -301,3 +301,30 @@ export function syncAddRecentViewed(userId: string, grantId: string): void {
     if (error) throw error;
   });
 }
+
+// ----------------------------------------------------------------------------
+// notification_subscriptions (Phase 5)
+// ----------------------------------------------------------------------------
+
+/**
+ * Phase 5: 사용자의 이메일 알림 수신 동의를 토글한다.
+ * notification_subscriptions 행은 handle_new_auth_user 트리거가 가입 시
+ * 자동 생성하므로 보통 update 만으로 충분하지만, 트리거 도입 이전에
+ * 가입한 사용자나 수동 삽입 케이스를 대비해 upsert 로 처리한다.
+ */
+export function syncUpdateEmailNotifications(
+  userId: string,
+  enabled_: boolean
+): void {
+  if (!enabled()) return;
+  detach("emailNotifications", async () => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("notification_subscriptions")
+      .upsert(
+        { user_id: userId, email_enabled: enabled_ },
+        { onConflict: "user_id" }
+      );
+    if (error) throw error;
+  });
+}

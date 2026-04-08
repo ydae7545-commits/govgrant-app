@@ -103,6 +103,15 @@ export interface UserAccount {
   activeContextId: ContextId;
   createdAt: string; // ISO
   completedOnboarding: boolean;
+  /**
+   * Phase 5: 포트폴리오 digest 이메일 수신 여부. 한국 개인정보보호법 가이드
+   * 에 맞춰 **기본 false (opt-in)**. 사용자가 /mypage 에서 명시적으로 ON
+   * 했을 때만 send-digest cron이 이 사용자를 대상에 포함한다.
+   *
+   * DB 상으로는 notification_subscriptions.email_enabled 에 저장된다 (Phase 1
+   * 에서 forward-prep 테이블로 만들어뒀던 것을 Phase 5에서 연결).
+   */
+  emailNotificationsEnabled: boolean;
 }
 
 /**

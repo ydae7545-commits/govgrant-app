@@ -46,32 +46,44 @@ export function useAccountHydration() {
     const supabase = createClient();
 
     // Parallel fetch — each query is RLS-protected to the current user.
-    const [usersRes, personalRes, orgsRes, interestsRes, savedRes, viewsRes] =
-      await Promise.all([
-        supabase.from("users").select("*").eq("id", userId).maybeSingle(),
-        supabase
-          .from("personal_profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabase
-          .from("organizations")
-          .select("*")
-          .eq("owner_user_id", userId)
-          .order("created_at", { ascending: true }),
-        supabase.from("user_interests").select("category").eq("user_id", userId),
-        supabase
-          .from("saved_grants")
-          .select("grant_id, saved_at")
-          .eq("user_id", userId)
-          .order("saved_at", { ascending: false }),
-        supabase
-          .from("recent_views")
-          .select("grant_id, viewed_at")
-          .eq("user_id", userId)
-          .order("viewed_at", { ascending: false })
-          .limit(20),
-      ]);
+    const [
+      usersRes,
+      personalRes,
+      orgsRes,
+      interestsRes,
+      savedRes,
+      viewsRes,
+      notifRes,
+    ] = await Promise.all([
+      supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+      supabase
+        .from("personal_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("organizations")
+        .select("*")
+        .eq("owner_user_id", userId)
+        .order("created_at", { ascending: true }),
+      supabase.from("user_interests").select("category").eq("user_id", userId),
+      supabase
+        .from("saved_grants")
+        .select("grant_id, saved_at")
+        .eq("user_id", userId)
+        .order("saved_at", { ascending: false }),
+      supabase
+        .from("recent_views")
+        .select("grant_id, viewed_at")
+        .eq("user_id", userId)
+        .order("viewed_at", { ascending: false })
+        .limit(20),
+      supabase
+        .from("notification_subscriptions")
+        .select("email_enabled")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
 
     // Bail out if the user changed while we were fetching.
     if (latestUserIdRef.current !== userId) return;
@@ -137,6 +149,10 @@ export function useAccountHydration() {
         }
       : {};
 
+    // Phase 5: notification_subscriptions row가 없으면 (기존 가입자) false로 가정.
+    // 새 가입자는 handle_new_auth_user 트리거가 default false 행을 생성한다.
+    const emailNotificationsEnabled = notifRes.data?.email_enabled ?? false;
+
     const account: UserAccount = {
       id: usersRow.id as string,
       displayName: (usersRow.display_name as string) || "사용자",
@@ -149,6 +165,7 @@ export function useAccountHydration() {
       createdAt:
         (usersRow.created_at as string | null) ?? new Date().toISOString(),
       completedOnboarding: usersRow.completed_onboarding ?? false,
+      emailNotificationsEnabled,
     };
 
     const savedGrantIds = (savedRes.data ?? []).map(

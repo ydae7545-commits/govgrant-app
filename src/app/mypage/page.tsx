@@ -15,7 +15,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
 import { GrantCard } from "@/components/grant/grant-card";
 import { OrgList } from "@/components/profile/org-list";
 import { SignInBanner } from "@/components/profile/sign-in-banner";
@@ -32,11 +31,9 @@ export default function MyPage() {
   const account = useUserStore((s) => s.account);
   const savedGrantIds = useUserStore((s) => s.savedGrantIds);
   const signOut = useUserStore((s) => s.signOut);
-
-  // Notification toggles (UI only)
-  const [notifyD7, setNotifyD7] = useState(true);
-  const [notifyD3, setNotifyD3] = useState(true);
-  const [notifyD1, setNotifyD1] = useState(true);
+  const setEmailNotificationsEnabled = useUserStore(
+    (s) => s.setEmailNotificationsEnabled
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -233,32 +230,28 @@ export default function MyPage() {
           {/* Tab 3: Notification Settings */}
           <TabsContent value="notifications" className="mt-4">
             <Card className="p-5">
-              <h3 className="mb-4 font-semibold text-gray-900">마감 알림 설정</h3>
+              <h3 className="mb-4 font-semibold text-gray-900">이메일 알림</h3>
               <div className="space-y-4">
                 <ToggleRow
-                  label="마감 D-7 알림"
-                  description="마감 7일 전에 알림을 받습니다"
-                  checked={notifyD7}
-                  onChange={setNotifyD7}
-                />
-                <Separator />
-                <ToggleRow
-                  label="마감 D-3 알림"
-                  description="마감 3일 전에 알림을 받습니다"
-                  checked={notifyD3}
-                  onChange={setNotifyD3}
-                />
-                <Separator />
-                <ToggleRow
-                  label="마감 D-1 알림"
-                  description="마감 하루 전에 알림을 받습니다"
-                  checked={notifyD1}
-                  onChange={setNotifyD1}
+                  label="포트폴리오 매일 다이제스트"
+                  description="등록한 기관별로 마감 임박 + 신규 매칭 과제를 매일 아침 이메일로 보내드립니다."
+                  checked={account.emailNotificationsEnabled}
+                  onChange={setEmailNotificationsEnabled}
                 />
               </div>
-              <p className="mt-6 text-xs text-gray-400">
-                * 알림 기능은 현재 데모 모드로 제공됩니다.
-              </p>
+              <div className="mt-6 space-y-1 rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+                <p>
+                  • 한국 개인정보보호법에 따라 <strong>기본 OFF</strong> 입니다.
+                  명시적으로 동의해주셔야 발송됩니다.
+                </p>
+                <p>
+                  • 발송 빈도(D-7/3/1) 세부 설정은 곧 추가될 예정입니다 — 현재는
+                  매일 1회 발송.
+                </p>
+                <p>
+                  • 언제든 이 토글을 OFF로 돌리면 다음 발송부터 즉시 중단됩니다.
+                </p>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>

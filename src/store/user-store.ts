@@ -22,6 +22,7 @@ import {
   syncSaveGrant,
   syncUnsaveGrant,
   syncAddRecentViewed,
+  syncUpdateEmailNotifications,
 } from "@/store/supabase-sync";
 
 interface UserState {
@@ -38,6 +39,9 @@ interface UserState {
   updatePersonal: (updates: Partial<PersonalProfile>) => void;
   setInterests: (interests: GrantCategory[]) => void;
   completeOnboarding: () => void;
+
+  // Notification preferences (Phase 5)
+  setEmailNotificationsEnabled: (enabled: boolean) => void;
 
   // Organizations
   addOrganization: (org: Omit<Organization, "id">) => string;
@@ -106,6 +110,7 @@ export const useUserStore = create<UserState>()(
           activeContextId: "personal",
           createdAt: new Date().toISOString(),
           completedOnboarding: false,
+          emailNotificationsEnabled: false, // Phase 5 — explicit opt-in
         };
         set({ account: newAccount });
       },
@@ -141,6 +146,17 @@ export const useUserStore = create<UserState>()(
           if (!state.account) return state;
           syncCompleteOnboarding(state.account.id);
           return { account: { ...state.account, completedOnboarding: true } };
+        }),
+
+      // Phase 5: 이메일 알림 수신 동의 토글. 변경 시 Supabase
+      // notification_subscriptions 테이블도 upsert.
+      setEmailNotificationsEnabled: (enabled) =>
+        set((state) => {
+          if (!state.account) return state;
+          syncUpdateEmailNotifications(state.account.id, enabled);
+          return {
+            account: { ...state.account, emailNotificationsEnabled: enabled },
+          };
         }),
 
       addOrganization: (org) => {
@@ -282,10 +298,29 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: "govgrant-user",
-      version: 2,
-      // v1 (구 profile 필드) → v2 (account) 마이그레이션
+      version: 3,
+      // v1 (구 profile 필드) → v2 (account) → v3 (emailNotificationsEnabled) 마이그레이션
       migrate: (persisted: unknown, version: number) => {
-        if (version >= 2) return persisted as UserState;
+        // v3 이상이면 그대로 사용
+        if (version >= 3) return persisted as UserState;
+
+        // v2 → v3: 기존 account 에 emailNotificationsEnabled 주입
+        if (version === 2) {
+          const current = persisted as UserState;
+          if (current.account) {
+            return {
+              ...current,
+              account: {
+                ...current.account,
+                emailNotificationsEnabled:
+                  current.account.emailNotificationsEnabled ?? false,
+              },
+            } as UserState;
+          }
+          return current;
+        }
+
+        // v1 이하 → v2 마이그레이션 (account 구조 생성)
         const prev = (persisted ?? {}) as {
           profile?: {
             type?: "individual" | "sme" | "research";
@@ -357,6 +392,7 @@ export const useUserStore = create<UserState>()(
               : organizations[0]?.id ?? "personal",
           createdAt: new Date().toISOString(),
           completedOnboarding: !!p.completedOnboarding,
+          emailNotificationsEnabled: false, // Phase 5 — explicit opt-in
         };
         return {
           account,
