@@ -53,6 +53,7 @@ export interface LLMCallOptions {
     | "proposal_section"
     | "proposal_refine"
     | "embedding_query"
+    | "grant_enrichment"
     | "test";
   /** Optional metadata recorded with the usage event. */
   metadata?: Record<string, unknown>;
