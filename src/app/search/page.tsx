@@ -343,7 +343,12 @@ function SearchContent() {
               {/* Mobile Filter Button */}
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="md:hidden">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="필터 열기"
+                    className="md:hidden"
+                  >
                     <SlidersHorizontal className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
@@ -374,19 +379,27 @@ function SearchContent() {
               {region && region !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   {region}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
+                  <button
+                    type="button"
                     onClick={() => setRegion("")}
-                  />
+                    aria-label={`${region} 지역 필터 제거`}
+                    className="-mr-0.5 ml-0.5 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </Badge>
               )}
               {status && status !== "all" && (
                 <Badge variant="secondary" className="gap-1">
                   {status}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
+                  <button
+                    type="button"
                     onClick={() => setStatus("")}
-                  />
+                    aria-label={`${status} 상태 필터 제거`}
+                    className="-mr-0.5 ml-0.5 rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </Badge>
               )}
             </div>

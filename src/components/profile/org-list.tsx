@@ -78,6 +78,7 @@ export function OrgList() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`${org.name} 수정`}
                   className="h-8 w-8"
                   onClick={() => openEdit(org)}
                 >
@@ -86,6 +87,7 @@ export function OrgList() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`${org.name} 삭제`}
                   className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
                   onClick={() => handleDelete(org.id, org.name)}
                 >

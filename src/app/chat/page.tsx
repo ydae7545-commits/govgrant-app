@@ -245,7 +245,12 @@ export default function ChatPage() {
             disabled={loading}
             className="flex-1"
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || loading}>
+          <Button
+            type="submit"
+            size="icon"
+            aria-label="메시지 전송"
+            disabled={!input.trim() || loading}
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>

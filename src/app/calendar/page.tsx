@@ -86,6 +86,7 @@ export default function CalendarPage() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="이전 달"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -96,6 +97,7 @@ export default function CalendarPage() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="다음 달"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
           >
             <ChevronRight className="h-5 w-5" />

@@ -125,11 +125,14 @@ export function GrantCard({ grant }: { grant: Grant }) {
         </div>
 
         <button
+          type="button"
           onClick={(e) => {
             e.preventDefault();
             toggleSaveGrant(grant.id);
           }}
-          className="shrink-0 rounded-full p-1.5 hover:bg-gray-100"
+          aria-label={isSaved ? "저장 취소" : "과제 저장"}
+          aria-pressed={isSaved}
+          className="shrink-0 rounded-full p-1.5 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <Bookmark
             className={`h-4 w-4 ${

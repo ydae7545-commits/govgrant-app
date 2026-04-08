@@ -456,6 +456,7 @@ export default function OnboardingPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label={`${org.name} 삭제`}
                     className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
                     onClick={() => removeOrganization(org.id)}
                   >
