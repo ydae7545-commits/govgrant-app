@@ -44,11 +44,14 @@ function SignInContent() {
         nextPath
       )}`;
       console.log("[sign-in] redirectTo", redirectTo);
+      // Kakao: 동의항목으로 활성화한 scope만 명시. 활성화 안 한 scope을
+      // 요청하면 카카오가 KOE205로 거절한다. profile_image / account_email은
+      // 비즈 인증이 필요하거나 선택사항이라 기본 활성화하지 않음.
       const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
-          // Supabase defaults: offline_access scope for refresh token.
+          scopes: provider === "kakao" ? "profile_nickname" : undefined,
         },
       });
       console.log("[sign-in] result", { data, authError });
