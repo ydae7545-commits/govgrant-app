@@ -44,6 +44,8 @@ import type { GrantDbRow } from "./msit";
 
 const CENTRAL_ENDPOINT =
   "https://apis.data.go.kr/B554287/NationalWelfareInformationsV001/NationalWelfarelistV001";
+// LocalGovernmentWelfareInformations 는 V001 versioned form 과 unversioned
+// 둘 다 관측됨 — 실제 응답 먼저 받은 뒤 고정할 예정.
 const LOCAL_ENDPOINT =
   "https://apis.data.go.kr/B554287/LocalGovernmentWelfareInformations/LcgvWelfarelist";
 
@@ -107,19 +109,20 @@ export interface BokjiroPage {
 export async function fetchBokjiroCentralPage(
   opts: BokjiroFetchOptions
 ): Promise<BokjiroPage> {
-  return fetchBokjiroGeneric(CENTRAL_ENDPOINT, opts);
+  return fetchBokjiroGeneric(CENTRAL_ENDPOINT, opts, "central");
 }
 
 /** 지자체 버전 */
 export async function fetchBokjiroLocalPage(
   opts: BokjiroFetchOptions
 ): Promise<BokjiroPage> {
-  return fetchBokjiroGeneric(LOCAL_ENDPOINT, opts);
+  return fetchBokjiroGeneric(LOCAL_ENDPOINT, opts, "local");
 }
 
 async function fetchBokjiroGeneric(
   endpoint: string,
-  opts: BokjiroFetchOptions
+  opts: BokjiroFetchOptions,
+  variant: "central" | "local"
 ): Promise<BokjiroPage> {
   const { serviceKey, pageNo = 1, numOfRows = 100 } = opts;
 
@@ -129,6 +132,13 @@ async function fetchBokjiroGeneric(
   url.searchParams.set("numOfRows", String(numOfRows));
   // 기본 응답은 XML. callTp=L (목록) / D (상세).
   url.searchParams.set("callTp", "L");
+
+  // 파라미터 차이:
+  // - central: srchKeyCode 필수 (003 = 서비스명+내용 통합 검색)
+  // - local  : srchKeyCode 없음, callTp 만으로 충분
+  if (variant === "central") {
+    url.searchParams.set("srchKeyCode", "003");
+  }
 
   const res = await fetch(url.toString(), {
     next: { revalidate: 60 * 60 * 12 }, // 복지는 하루 1회 이하 갱신
