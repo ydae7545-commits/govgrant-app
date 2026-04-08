@@ -56,11 +56,15 @@ export async function POST(request: NextRequest) {
   const userAgent = request.headers.get("user-agent") ?? null;
 
   const admin = createAdminClient();
-  const { error } = await admin.from("user_consents").insert([
+  const now = new Date().toISOString();
+
+  // 1. Audit log insert (분쟁 입증용 — 모든 동의 시점 보존)
+  const { error: insertError } = await admin.from("user_consents").insert([
     {
       user_id: user.id,
       kind: "terms",
       version: termsVersion,
+      agreed_at: now,
       ip_address: ip,
       user_agent: userAgent,
     },
@@ -68,15 +72,36 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       kind: "privacy",
       version: privacyVersion,
+      agreed_at: now,
       ip_address: ip,
       user_agent: userAgent,
     },
   ]);
 
-  if (error) {
+  if (insertError) {
     return NextResponse.json(
-      { error: "insert_failed", message: error.message },
+      { error: "insert_failed", message: insertError.message },
       { status: 500 }
+    );
+  }
+
+  // 2. users 테이블 캐시 업데이트 (callback 빠른 검사용)
+  const { error: updateError } = await admin
+    .from("users")
+    .update({
+      terms_accepted_version: termsVersion,
+      terms_accepted_at: now,
+      privacy_accepted_version: privacyVersion,
+      privacy_accepted_at: now,
+    })
+    .eq("id", user.id);
+
+  if (updateError) {
+    // 캐시 업데이트 실패는 치명적이지 않음 — audit log 는 이미 들어갔고
+    // hydration 이 다음 번에 다시 검사할 수 있음. 단 로그는 남김.
+    console.warn(
+      "[consent] users cache update failed",
+      updateError.message
     );
   }
 
