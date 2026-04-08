@@ -165,6 +165,18 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // ----- Step 4: send-digest (Resend) -----
+  // 포트폴리오 운영자에게 마감 임박 + 신규 추천 이메일 발송.
+  // RESEND_API_KEY 미설정 시 내부에서 no_api_key reason으로 skip되므로
+  // 여기서 차단할 필요 없음.
+  results.push(
+    await callInternal(
+      baseUrl,
+      "/api/admin/send-digest?limit=50",
+      adminToken
+    )
+  );
+
   const totalTook = results.reduce((s, r) => s + r.tookMs, 0);
   const anyFailed = results.some((r) => !r.ok);
 

@@ -32,6 +32,8 @@ export interface ServerEnv {
   BIZINFO_API_KEY: string | null;
   /** Bearer token gate for /api/admin/sync-grants. Optional until Phase 6 ships. */
   ADMIN_SYNC_TOKEN: string | null;
+  /** Resend API key for transactional emails (portfolio digest, etc). */
+  RESEND_API_KEY: string | null;
 }
 
 class MissingEnvError extends Error {
@@ -91,6 +93,7 @@ export function serverEnv(): ServerEnv {
     DATA_GO_KR_SERVICE_KEY: optionalNullable("DATA_GO_KR_SERVICE_KEY"),
     BIZINFO_API_KEY: optionalNullable("BIZINFO_API_KEY"),
     ADMIN_SYNC_TOKEN: optionalNullable("ADMIN_SYNC_TOKEN"),
+    RESEND_API_KEY: optionalNullable("RESEND_API_KEY"),
   };
 }
 
