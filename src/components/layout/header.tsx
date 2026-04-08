@@ -39,6 +39,12 @@ export function Header() {
               사업계획서
             </NavLink>
           )}
+          {(featureFlags.usePortfolio ||
+            (account?.organizations?.length ?? 0) >= 2) && (
+            <NavLink href="/portfolio" current={pathname}>
+              포트폴리오
+            </NavLink>
+          )}
           <NavLink href="/mypage" current={pathname}>
             마이
           </NavLink>

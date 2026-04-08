@@ -57,6 +57,12 @@ export const featureFlags = {
   useLlmChat: process.env.NEXT_PUBLIC_USE_LLM_CHAT === "true",
   useProposalAi: process.env.NEXT_PUBLIC_USE_PROPOSAL_AI === "true",
   useVectorSearch: process.env.NEXT_PUBLIC_USE_VECTOR_SEARCH === "true",
+  /**
+   * Phase C (B2B): 여러 포트폴리오사를 한 운영자 계정이 관리하는 대시보드.
+   * 개인 사용자에게는 불필요한 기능이므로 flag로 숨긴다. 조직 2개 이상인
+   * 사용자에게만 자연스럽게 노출하는 로직은 헤더 컴포넌트에서 별도 처리.
+   */
+  usePortfolio: process.env.NEXT_PUBLIC_USE_PORTFOLIO === "true",
 } as const;
 
 /**
