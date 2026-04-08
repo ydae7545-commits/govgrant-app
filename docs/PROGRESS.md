@@ -1,7 +1,7 @@
 # govgrant-app 진행 상황
 
 > 마지막 업데이트: 2026-04-08
-> 마지막 commit: `7effb99` (Phase 6.5 enrichment + 마감 필터)
+> 마지막 commit: `61f9fb3` (bokjiro 복지 API 어댑터 + 개인복지 5000건 적재)
 
 마스터 플랜은 [`docs/PLAN.md`](./PLAN.md) 참조.
 
@@ -118,6 +118,44 @@
 
 **현재 prod grants**: 600건 (MSIT 100 + BIZINFO 500), 5,198건 잠재
 **현재 prod 검색**: "청년" → 24건, "AI" → 21건+ 정상 동작
+
+### Phase 6 네 번째 청크 — 복지로 (bokjiro) 어댑터 (commit 61f9fb3)
+
+사용자 제보: "개인 복지에 대한 내용은 하나도 안 나오네. 각 시도별 지원금 복지 제도도 검색됐으면 좋겠어."
+
+원인: 기존 3개 어댑터(MSIT/BIZINFO/MSS)는 전부 기업 대상. 개인 복지 없음.
+
+추가 소스 2개 (한국사회보장정보원, 같은 data.go.kr 키 재사용):
+- **BOKJIRO_CENTRAL**: 중앙부처복지서비스 373건 (기초생활/임신출산/산재재활 등)
+- **BOKJIRO_LOCAL**: 지자체복지서비스 4,559건 (시도+시군구 청년수당/출산축하/신혼부부 등)
+
+src/lib/data-sources/bokjiro.ts
+- fetchBokjiroCentralPage / fetchBokjiroLocalPage: variant별 분기
+  · central: srchKeyCode=003 필수
+  · local: srchKeyCode 없음, callTp=L만
+- 파싱: <servList> 반복 태그 정규식 추출
+- 필드명 차이 통합: lifeArray/lifeNmArray, intrsThemaArray/intrsThemaNmArray 등
+- region: ctpvNm 기반 정규화 + bizChrDeptNm fallback
+- category = "복지" 고정, target_types = ["individual"] 기본
+
+src/app/api/admin/sync-grants/route.ts
+- bokjiro_central / bokjiro_local 분기 추가
+
+src/app/api/cron/daily/route.ts
+- 일일 파이프라인에 복지 sync 포함
+
+**prod 적재**:
+- BOKJIRO_CENTRAL: 373건 (전체)
+- BOKJIRO_LOCAL: 5,000건 (총 4,559건 중 upsert — 일부 중복 포함)
+
+**검색 검증**:
+- "출산" → 23건 (의료급여 임신·출산진료비, 고위험 임산부 의료비 등)
+- "기초생활" → 4건 (자활근로, 통합문화이용권)
+- "청년" → 126건 (기업+복지 혼합)
+
+**최종 소스 현황**:
+- MSIT / BIZINFO / MSS / BOKJIRO_CENTRAL / BOKJIRO_LOCAL
+- 가용 총합: 약 12,182건 (MSIT 4,008 + BIZINFO 1,190 + MSS 2,052 + BOKJIRO 4,932)
 
 ### Phase 6 세 번째 청크 — MSS 어댑터 (commit 0f212aa)
 
