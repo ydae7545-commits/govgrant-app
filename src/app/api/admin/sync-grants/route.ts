@@ -108,8 +108,15 @@ export async function POST(request: NextRequest) {
         if (normalized) collected.push(normalized);
       }
 
-      // No more pages
-      if (page.rows.length < numOfRows) break;
+      // Stop conditions:
+      //   - empty page (we've consumed everything)
+      //   - we've collected as many as the server claims to have
+      //
+      // Note: this endpoint ignores numOfRows server-side and always
+      // returns 10 rows per page regardless. Don't break on
+      // `rows.length < numOfRows` — that would always trigger after
+      // the first page.
+      if (page.rows.length === 0) break;
       if (collected.length >= page.totalCount) break;
     }
   } catch (err) {
